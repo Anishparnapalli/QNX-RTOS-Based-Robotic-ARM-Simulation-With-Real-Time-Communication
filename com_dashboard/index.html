@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>M.A.T.R.I.X. — Communication Layer</title>
+<link rel="stylesheet" href="style.css"/>
+<style>@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap');</style>
+<!-- Card 1 needs a genuine 3D scene (not SVG/CSS) for the robotic arm,
+     per CARD 1 spec section 2. Procedural geometry only — no OBJ/STL
+     assets are available to this page (those live in robot_dashboard's
+     per-project IndexedDB store), so a clean hierarchical box-arm is
+     built in app.js and driven by the real telemetry stream. -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+
+<header id="topbar">
+  <div class="logo">M.A.T.R.I.X.<small>COMMUNICATION LAYER</small></div>
+  <div class="tb-sep"></div>
+  <div class="badge" id="badge-gw"><div class="dot" id="dot-gw"></div><div><label>GATEWAY</label><span id="lbl-gw">CONNECTING</span></div></div>
+  <div class="badge" id="badge-auth"><div class="dot" id="dot-auth"></div><div><label>AUTH</label><span id="lbl-auth">—</span></div></div>
+  <div class="badge" id="badge-qnx"><div class="dot" id="dot-qnx"></div><div><label>QNX</label><span id="lbl-qnx">OFFLINE</span></div></div>
+  <div class="badge" id="badge-br"><div class="dot" id="dot-br"></div><div><label>BR</label><span id="lbl-br">OFFLINE</span></div></div>
+  <div class="spacer"></div>
+  <div class="real-badge">◉ REAL MATRIX TRAFFIC</div>
+  <button class="shield-toggle on" id="btn-shield-toggle" title="Click to toggle the TLS Shield">
+    <span class="shield-ico">🛡</span><span id="shield-toggle-label">TLS SHIELD: ON</span>
+  </button>
+  <button class="seccenter-btn" id="btn-sec-open">SECURITY CENTER</button>
+</header>
+
+<div id="content">
+
+  <!-- LEFT: Topology + Stats -->
+  <aside id="panel-left">
+    <div class="p-head">NETWORK TOPOLOGY</div>
+    <div class="p-section" id="topology-section">
+      <svg id="topo-svg" viewBox="0 0 280 170" width="100%">
+        <path id="link-qnx-gw" d="M50,80 L140,80" class="topo-link"/>
+        <path id="link-gw-br"  d="M140,80 L230,80" class="topo-link"/>
+        <circle id="pulse-qnx-gw" class="topo-pulse" r="4" cx="50" cy="80"><animateMotion id="anim-qnx-gw" dur="0.9s" repeatCount="indefinite" path="M50,80 L140,80"/></circle>
+        <circle id="pulse-gw-br" class="topo-pulse" r="4" cx="140" cy="80"><animateMotion id="anim-gw-br" dur="0.9s" repeatCount="indefinite" path="M140,80 L230,80"/></circle>
+        <g id="node-qnx" class="topo-node">
+          <circle class="topo-ring" cx="50" cy="80" r="30"/>
+          <circle class="topo-core" cx="50" cy="80" r="22"/>
+          <circle class="topo-activity" cx="50" cy="80" r="9"/>
+          <text x="50" y="85" text-anchor="middle">QNX</text>
+        </g>
+        <g id="node-gw" class="topo-node on">
+          <circle class="topo-ring" cx="140" cy="80" r="30"/>
+          <circle class="topo-core" cx="140" cy="80" r="22"/>
+          <circle class="topo-activity" cx="140" cy="80" r="9"/>
+          <text x="140" y="85" text-anchor="middle">GW</text>
+        </g>
+        <g id="node-br" class="topo-node">
+          <circle class="topo-ring" cx="230" cy="80" r="30"/>
+          <circle class="topo-core" cx="230" cy="80" r="22"/>
+          <circle class="topo-activity" cx="230" cy="80" r="9"/>
+          <text x="230" y="85" text-anchor="middle">BR</text>
+        </g>
+        <text x="50" y="122" text-anchor="middle" class="topo-state-lbl" id="topo-state-qnx">OFFLINE</text>
+        <text x="140" y="122" text-anchor="middle" class="topo-state-lbl" id="topo-state-gw">—</text>
+        <text x="230" y="122" text-anchor="middle" class="topo-state-lbl" id="topo-state-br">OFFLINE</text>
+        <text x="50" y="137" text-anchor="middle" class="topo-activity-lbl" id="topo-activity-qnx"></text>
+        <text x="140" y="137" text-anchor="middle" class="topo-activity-lbl" id="topo-activity-gw"></text>
+        <text x="230" y="137" text-anchor="middle" class="topo-activity-lbl" id="topo-activity-br"></text>
+      </svg>
+      <div class="topo-legend">
+        <div><span class="lg-dot lg-on"></span>Connected (ring)</div>
+        <div><span class="lg-dot lg-warn"></span>Connecting / reconnecting</div>
+        <div><span class="lg-dot lg-off"></span>Disconnected</div>
+        <div><span class="lg-pulse"></span>Pulsing core = active traffic; steady = connected &amp; idle</div>
+      </div>
+    </div>
+
+    <div class="p-head">LIVE STATISTICS</div>
+    <div class="p-section">
+      <div class="tele-grid">
+        <div class="tele-cell"><div class="tele-val" id="stat-total">0</div><div class="tele-key">TOTAL PACKETS</div></div>
+        <div class="tele-cell"><div class="tele-val" id="stat-rate">0</div><div class="tele-key">PKT / SEC</div></div>
+        <div class="tele-cell"><div class="tele-val" id="stat-size">0</div><div class="tele-key">AVG BYTES</div></div>
+        <div class="tele-cell"><div class="tele-val" id="stat-latency">—</div><div class="tele-key">LAST LATENCY (ms)</div></div>
+      </div>
+      <div class="p-subhead">BY CATEGORY</div>
+      <div id="cat-breakdown" class="cat-breakdown"></div>
+    </div>
+
+    <!-- Compact Security Center status — summary only; the full live
+         attack feed, attacker profile, attack path diagram and impact
+         meters live inside the Security Center overlay. -->
+    <div class="p-head">🛡 SECURITY</div>
+    <div class="p-section">
+      <div class="sec-widget" id="sec-dash-widget">
+        <div class="sec-widget-status" id="sec-dash-status"><span class="fs-dot"></span><span id="sec-dash-status-text">SECURE</span></div>
+        <div class="sec-widget-detail" id="sec-dash-detail">No intrusion attempts yet this session.</div>
+        <button class="tl-widget-open" onclick="document.getElementById('btn-sec-open').click()">OPEN SECURITY CENTER →</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- CENTER: Three-card communication observability + detail views -->
+  <main id="panel-center">
+
+    <!-- ═══ COMPACT THREE-CARD VIEW (default) ═══ -->
+    <div id="cards-view" class="cards-grid">
+
+      <!-- ═════════════════ CARD 1 — Robotic Dashboard → Python Bridge ═════════════════
+           Per Card 1 spec: dashboard transmission + REAL 3D robot visualization
+           (moved here from the old Card 3 SVG arm). Genuine hierarchical Three.js
+           scene, driven only by real qnx_to_bridge 'angles' telemetry. -->
+      <div class="obs-card card1-card" id="card1" onclick="openDetail('card1')" tabindex="0">
+        <div class="card-head">
+          <span class="card-icon">🖥️</span>
+          <div class="card-titles"><div class="card-title">ROBOTIC DASHBOARD</div><div class="card-sub">→ Python Bridge · live 3D robot</div></div>
+          <span class="card-expand">⤢</span>
+        </div>
+        <div class="card-body">
+          <div class="c1-robot-wrap" id="c1-robot-wrap">
+            <canvas id="c1-robot-canvas" class="c1-robot-canvas"></canvas>
+            <div class="c1-robot-badge" id="c1-robot-badge">WAITING FOR ROBOT STATE</div>
+          </div>
+          <div class="joint-hud-compact" id="c1-joint-hud">
+            <div class="jhc-cell"><span class="jhc-tag">J0</span><span class="jhc-val" id="c1-j0">90.0°</span></div>
+            <div class="jhc-cell"><span class="jhc-tag">J1</span><span class="jhc-val" id="c1-j1">90.0°</span></div>
+            <div class="jhc-cell"><span class="jhc-tag">J2</span><span class="jhc-val" id="c1-j2">90.0°</span></div>
+            <div class="jhc-cell"><span class="jhc-tag">J3</span><span class="jhc-val" id="c1-j3">90.0°</span></div>
+            <div class="jhc-cell"><span class="jhc-tag">J4</span><span class="jhc-val" id="c1-j4">90.0°</span></div>
+            <div class="jhc-cell"><span class="jhc-tag">J5</span><span class="jhc-val" id="c1-j5">0%</span></div>
+          </div>
+          <div class="card-latest-label">LAST TRANSMISSION</div>
+          <div class="card-latest" id="c1-latest">No activity yet</div>
+          <div class="card-latest-time" id="c1-latest-time">—</div>
+          <div class="pose-preview" id="c1-pose-preview" style="display:none"></div>
+          <div class="card-mini-grid cols-3">
+            <div class="mini-stat"><div class="mini-val" id="c1-cmd-count">0</div><div class="mini-key">COMMANDS</div></div>
+            <div class="mini-stat"><div class="mini-val" id="c1-seq-count">0</div><div class="mini-key">SEQUENCES</div></div>
+            <div class="mini-stat"><div class="mini-val" id="c1-safety-count">0</div><div class="mini-key">SAFETY</div></div>
+          </div>
+        </div>
+        <div class="card-foot">Click to inspect transmission history &amp; the 3D robot →</div>
+      </div>
+
+      <!-- ═════════════════ CARD 2 — Python Bridge (bidirectional journey) ═════════════════ -->
+      <div class="obs-card card2" id="card2" onclick="openDetail('card2')" tabindex="0">
+        <div class="card-head">
+          <span class="card-icon">⚙️</span>
+          <div class="card-titles"><div class="card-title">PYTHON BRIDGE</div><div class="card-sub">bidirectional communication journey</div></div>
+          <span class="card-expand">⤢</span>
+        </div>
+        <div class="card-body">
+          <div class="lane-block" id="lane-outbound-ov">
+            <div class="lane-hdr"><span class="lane-tag out">OUTBOUND</span><span class="lane-desc">Dashboard → QNX</span><span class="lane-state" id="lane-out-state-ov">IDLE</span></div>
+            <svg class="lane-svg" viewBox="0 0 260 46">
+              <line x1="20" y1="23" x2="240" y2="23" class="lane-track"/>
+              <circle cx="20" cy="23" r="8" class="lane-node" id="ov-out-n0"/>
+              <circle cx="130" cy="23" r="8" class="lane-node" id="ov-out-n1"/>
+              <circle cx="240" cy="23" r="8" class="lane-node" id="ov-out-n2"/>
+              <text x="20" y="40" text-anchor="middle" class="lane-lbl">DASH</text>
+              <text x="130" y="40" text-anchor="middle" class="lane-lbl">BRIDGE</text>
+              <text x="240" y="40" text-anchor="middle" class="lane-lbl">QNX</text>
+              <circle id="ov-out-dot" class="lane-dot" r="4" cx="20" cy="23"/>
+            </svg>
+          </div>
+          <div class="lane-block" id="lane-inbound-ov">
+            <div class="lane-hdr"><span class="lane-tag in">INBOUND</span><span class="lane-desc">QNX → Dashboard</span><span class="lane-state" id="lane-in-state-ov">IDLE</span></div>
+            <svg class="lane-svg" viewBox="0 0 260 46">
+              <line x1="20" y1="23" x2="240" y2="23" class="lane-track"/>
+              <circle cx="20" cy="23" r="8" class="lane-node" id="ov-in-n0"/>
+              <circle cx="130" cy="23" r="8" class="lane-node" id="ov-in-n1"/>
+              <circle cx="240" cy="23" r="8" class="lane-node" id="ov-in-n2"/>
+              <text x="20" y="40" text-anchor="middle" class="lane-lbl">QNX</text>
+              <text x="130" y="40" text-anchor="middle" class="lane-lbl">BRIDGE</text>
+              <text x="240" y="40" text-anchor="middle" class="lane-lbl">DASH</text>
+              <circle id="ov-in-dot" class="lane-dot" r="4" cx="240" cy="23"/>
+            </svg>
+          </div>
+          <div class="card-mini-grid cols-4">
+            <div class="mini-stat"><div class="mini-val" id="c2-rx">0</div><div class="mini-key">RX</div></div>
+            <div class="mini-stat"><div class="mini-val" id="c2-tx">0</div><div class="mini-key">TX</div></div>
+            <div class="mini-stat"><div class="mini-val" id="c2-clients">0</div><div class="mini-key">CLIENTS</div></div>
+            <div class="mini-stat"><div class="mini-val" id="c2-errors">0</div><div class="mini-key">ERRORS</div></div>
+          </div>
+        </div>
+        <div class="card-foot">Click for the Communication Journey investigation →</div>
+      </div>
+
+      <!-- ═════════════════ CARD 3 — QNX RTOS controller ═════════════════
+           Composition (overview): the thread architecture itself IS the
+           card — a controller node fanning out to the three real threads,
+           each carrying its own scheduling/priority fact inline (no
+           detached priority chart), converging back down to the real
+           TCP link state. A compact secondary status line sits below;
+           an active emergency replaces it outright (see app.js). -->
+      <div class="obs-card card3" id="card3" onclick="openDetail('card3')" tabindex="0">
+        <div class="card-head">
+          <span class="card-icon">🧵</span>
+          <div class="card-titles"><div class="card-title">QNX RTOS</div><div class="card-sub">threads · execution · output</div></div>
+          <span class="card-expand">⤢</span>
+        </div>
+        <div class="card-body">
+          <div class="c3-arch">
+            <div class="c3-arch-node">⚙ QNX RTOS CONTROLLER</div>
+            <svg class="c3-arch-connector" viewBox="0 0 300 30" preserveAspectRatio="none">
+              <path d="M150,0 L150,10" class="c3-arch-line"/>
+              <path d="M50,10 L250,10" class="c3-arch-line"/>
+              <path d="M50,10 L50,26" class="c3-arch-line"/>
+              <path d="M150,10 L150,26" class="c3-arch-line"/>
+              <path d="M250,10 L250,26" class="c3-arch-line"/>
+            </svg>
+            <div class="thread-row" id="thread-row-ov">
+              <div class="thread-mini" id="th-recv-ov">
+                <div class="thread-mini-name">RECV THREAD</div>
+                <div class="thread-mini-sched">Normal scheduling</div>
+                <div class="thread-mini-state"><span class="th-dot"></span><span class="th-state-txt">WAITING</span></div>
+              </div>
+              <div class="thread-mini" id="th-motion-ov">
+                <div class="thread-mini-name">MOTION TASK</div>
+                <div class="thread-mini-sched">SCHED_FIFO · prio 10</div>
+                <div class="thread-mini-state"><span class="th-dot"></span><span class="th-state-txt">IDLE</span></div>
+              </div>
+              <div class="thread-mini" id="th-safety-ov">
+                <div class="thread-mini-name">SAFETY TASK</div>
+                <div class="thread-mini-sched">SCHED_FIFO · prio 20</div>
+                <div class="thread-mini-state"><span class="th-dot"></span><span class="th-state-txt">MONITORING</span></div>
+              </div>
+            </div>
+            <svg class="c3-arch-connector c3-arch-connector-down" viewBox="0 0 300 22" preserveAspectRatio="none">
+              <path d="M50,0 L50,11 L150,11 L150,22 M150,11 L250,11 L250,0" class="c3-arch-line"/>
+            </svg>
+            <div class="c3-arch-node c3-arch-bridge" id="c3-bridge-caption">QNX → TCP → BRIDGE · <span id="c3-bridge-state">—</span></div>
+          </div>
+
+          <!-- Safety-critical override: replaces the secondary status line
+               entirely while an emergency is active. Hidden by default;
+               toggled purely by real state in app.js. -->
+          <div class="c3-emergency-banner" id="c3-emergency-banner" style="display:none">
+            <span class="c3-emergency-ico">⚠</span>
+            <div class="c3-emergency-text">
+              <div class="c3-emergency-title">EMERGENCY ACTIVE</div>
+              <div class="c3-emergency-msg" id="c3-emergency-msg">EMERGENCY_STOP asserted</div>
+            </div>
+          </div>
+
+          <div id="c3-normal-footer" class="c3-normal-footer">
+            <div class="c3-safety-chip" id="c3-safety-chip"><span class="th-dot"></span>SAFETY: <span id="c3-safety-sum">NORMAL</span></div>
+            <div class="card-latest-label">LAST QNX EVENT <span class="card-latest-time" id="c3-latest-time"></span></div>
+            <div class="card-latest" id="c3-latest">No events yet</div>
+          </div>
+        </div>
+        <div class="card-foot">Click for the RTOS Execution &amp; Output Observatory →</div>
+      </div>
+    </div>
+
+    <!-- Directional flow indicator between cards -->
+    <div class="flow-caption">ROBOTIC DASHBOARD <span class="flow-arrow">⇄</span> PYTHON BRIDGE <span class="flow-arrow">⇄</span> QNX RTOS</div>
+
+    <!-- ═══ DETAIL VIEW (shown when a card is clicked) ═══ -->
+    <div id="detail-view" class="detail-view" style="display:none">
+      <div class="detail-head">
+        <button class="detail-back" onclick="closeDetail()">← BACK TO OVERVIEW</button>
+        <div class="detail-title" id="detail-title">—</div>
+        <div class="filter-row" id="detail-controls"></div>
+      </div>
+
+      <!-- ── CARD 1 detail: action history + 3D robot + selected transmission ── -->
+      <div id="c1-detail" class="c1-detail" style="display:none">
+        <div class="c1-detail-left">
+          <div class="c1-detail-subhead">ACTION HISTORY</div>
+          <div id="detail-subfilters-c1"></div>
+          <div id="c1-history-list" class="c1-history-list"></div>
+        </div>
+        <div class="c1-detail-right">
+          <div class="c1-robot-wrap-lg" id="c1-robot-wrap-lg">
+            <canvas id="c1-robot-canvas-lg" class="c1-robot-canvas-lg"></canvas>
+            <div class="c1-robot-badge" id="c1-robot-badge-lg">WAITING FOR ROBOT STATE</div>
+            <div class="c1-cam-btns">
+              <button onclick="c1SetCamera('front')">FRONT</button>
+              <button onclick="c1SetCamera('side')">SIDE</button>
+              <button onclick="c1SetCamera('top')">TOP</button>
+              <button onclick="c1SetCamera('reset')">RESET</button>
+            </div>
+          </div>
+          <div class="joint-hud-full" id="c1-joint-hud-lg"></div>
+          <div class="c1-selected-panel" id="c1-selected-panel">
+            <div class="c1-detail-subhead">SELECTED TRANSMISSION</div>
+            <div id="c1-selected-body" class="c1-selected-body">Select an action from the history on the left.</div>
+            <button class="tl-widget-open" id="c1-payload-btn" style="display:none" onclick="c1TogglePayload()">INSPECT PAYLOAD</button>
+            <div id="c1-payload-panel" class="c1-payload-panel" style="display:none"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── CARD 2 detail: outbound/inbound lanes + transaction selector ── -->
+      <div id="c2-detail" class="c2-detail" style="display:none">
+        <div class="lane-block lane-block-lg" id="lane-outbound-detail">
+          <div class="lane-hdr"><span class="lane-tag out">OUTBOUND</span><span class="lane-desc">Dashboard → WebSocket → Bridge → TCP → QNX</span><span class="lane-state" id="lane-out-state-detail">IDLE</span></div>
+          <svg class="lane-svg-lg" viewBox="0 0 640 70">
+            <line x1="40" y1="35" x2="600" y2="35" class="lane-track"/>
+            <circle cx="40"  cy="35" r="11" class="lane-node" id="dt-out-n0"/>
+            <circle cx="220" cy="35" r="11" class="lane-node" id="dt-out-n1"/>
+            <circle cx="420" cy="35" r="11" class="lane-node" id="dt-out-n2"/>
+            <circle cx="600" cy="35" r="11" class="lane-node" id="dt-out-n3"/>
+            <text x="40"  y="58" text-anchor="middle" class="lane-lbl">DASHBOARD</text>
+            <text x="220" y="58" text-anchor="middle" class="lane-lbl">WEBSOCKET RX</text>
+            <text x="420" y="58" text-anchor="middle" class="lane-lbl">BRIDGE → TCP TX</text>
+            <text x="600" y="58" text-anchor="middle" class="lane-lbl">QNX</text>
+            <circle id="dt-out-dot" class="lane-dot" r="5" cx="40" cy="35"/>
+          </svg>
+        </div>
+        <div class="lane-block lane-block-lg" id="lane-inbound-detail">
+          <div class="lane-hdr"><span class="lane-tag in">INBOUND</span><span class="lane-desc">QNX → TCP → Bridge → WebSocket → Dashboard</span><span class="lane-state" id="lane-in-state-detail">IDLE</span></div>
+          <svg class="lane-svg-lg" viewBox="0 0 640 70">
+            <line x1="40" y1="35" x2="600" y2="35" class="lane-track"/>
+            <circle cx="40"  cy="35" r="11" class="lane-node" id="dt-in-n0"/>
+            <circle cx="220" cy="35" r="11" class="lane-node" id="dt-in-n1"/>
+            <circle cx="420" cy="35" r="11" class="lane-node" id="dt-in-n2"/>
+            <circle cx="600" cy="35" r="11" class="lane-node" id="dt-in-n3"/>
+            <text x="40"  y="58" text-anchor="middle" class="lane-lbl">QNX</text>
+            <text x="220" y="58" text-anchor="middle" class="lane-lbl">BRIDGE ← TCP RX</text>
+            <text x="420" y="58" text-anchor="middle" class="lane-lbl">WEBSOCKET TX</text>
+            <text x="600" y="58" text-anchor="middle" class="lane-lbl">DASHBOARD</text>
+            <circle id="dt-in-dot" class="lane-dot" r="5" cx="40" cy="35"/>
+          </svg>
+        </div>
+        <div class="c2-tx-wrap">
+          <div class="c2-tx-list-wrap">
+            <div class="c1-detail-subhead">RECENT TRANSACTIONS</div>
+            <div id="detail-subfilters-c2"></div>
+            <div id="c2-tx-list" class="c2-tx-list"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── CARD 3 detail: thread architecture + inspector + output + events ── -->
+      <div id="c3-detail" class="c3-detail" style="display:none">
+        <section class="c3-region c3-region-arch">
+          <div class="c1-detail-subhead">THREAD ARCHITECTURE</div>
+          <div class="thread-row thread-row-lg" id="thread-row-detail">
+            <div class="thread-card" id="th-recv-detail" onclick="c3SelectThread('recv')" tabindex="0" role="tab" aria-selected="false">
+              <div class="thread-card-name">RECV THREAD</div>
+              <div class="thread-card-sched">Normal scheduling</div>
+              <div class="thread-card-state"><span class="th-dot"></span><span class="th-state-txt">WAITING</span></div>
+            </div>
+            <div class="thread-card" id="th-motion-detail" onclick="c3SelectThread('motion')" tabindex="0" role="tab" aria-selected="false">
+              <div class="thread-card-name">MOTION TASK</div>
+              <div class="thread-card-sched">SCHED_FIFO · priority 10</div>
+              <div class="thread-card-state"><span class="th-dot"></span><span class="th-state-txt">IDLE</span></div>
+            </div>
+            <div class="thread-card" id="th-safety-detail" onclick="c3SelectThread('safety')" tabindex="0" role="tab" aria-selected="false">
+              <div class="thread-card-name">SAFETY TASK</div>
+              <div class="thread-card-sched">SCHED_FIFO · priority 20</div>
+              <div class="thread-card-state"><span class="th-dot"></span><span class="th-state-txt">MONITORING</span></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="c3-region c3-region-split">
+          <div class="c3-split">
+            <div class="c3-split-left">
+              <div class="c1-detail-subhead">SELECTED THREAD</div>
+              <div id="c3-thread-inspector" class="c3-thread-inspector"></div>
+            </div>
+            <div class="c3-split-right">
+              <div class="c1-detail-subhead">QNX → PYTHON BRIDGE OUTPUT</div>
+              <div id="c3-output-panel" class="c3-output-panel"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="c3-region c3-region-flow">
+          <div class="c1-detail-subhead" id="c3-flow-heading">QNX EXECUTION / EVENT FLOW — MOTION TASK</div>
+          <div id="c3-flow-panel" class="c3-flow-panel"></div>
+        </section>
+
+        <section class="c3-region c3-region-events">
+          <div class="c1-detail-subhead">RECENT QNX EVENTS</div>
+          <div id="c3-event-list" class="c3-event-list"></div>
+        </section>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- RIGHT: Inspector + Timeline -->
+  <aside id="panel-right">
+    <div class="p-head">PACKET INSPECTOR</div>
+    <div class="p-section" id="inspector">
+      <div class="inspector-empty">Select a packet to inspect its envelope.</div>
+    </div>
+
+    <div class="p-head">COMMUNICATION TIMELINE</div>
+    <div class="p-section">
+      <div id="timeline-list"></div>
+      <div class="latency-note">Latency values are <b>gateway-measured</b> (time between a command envelope leaving the gateway and the next related response envelope arriving back at it). Gateway-side timing only — not claimed as end-to-end wall-clock precision.</div>
+    </div>
+  </aside>
+
+</div>
+
+<!-- ═══════════════════════════════════════════ SECURITY CENTER (TLS Shield demo) ═══ -->
+<div id="security-overlay" class="security-hidden">
+  <div id="security-panel">
+    <div class="security-header">
+      <div class="security-title">🛡 SECURITY CENTER — TLS SHIELD INTRUSION MONITOR</div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <button class="shield-toggle on" id="btn-shield-toggle-modal" title="Click to toggle the TLS Shield">
+          <span class="shield-ico">🛡</span><span id="shield-toggle-label-modal">TLS SHIELD: ON</span>
+        </button>
+        <button id="btn-sec-close" class="testlab-close">✕ CLOSE</button>
+      </div>
+    </div>
+    <div class="testlab-warning">
+      ⚠ This panel shows REAL intrusion attempts made by the standalone <code>attacker_console.py</code> tool against the bridge's deliberately insecure legacy port (:8767) — not simulated UI events. The attacker console is never told whether an attack was blocked or succeeded; only this panel shows that.
+    </div>
+
+    <!-- Threat banner — the single most important fact in this panel -->
+    <div class="sec-banner" id="sec-banner">
+      <span class="sec-banner-ico" id="sec-banner-ico">✔</span>
+      <div class="sec-banner-text">
+        <div class="sec-banner-title" id="sec-banner-title">SECURE</div>
+        <div class="sec-banner-sub" id="sec-banner-sub">TLS Shield is ON. No intrusion attempts observed yet this session.</div>
+      </div>
+    </div>
+
+    <!-- Attack path diagram -->
+    <div class="testlab-grid" style="grid-template-columns:1fr">
+      <div class="testlab-card">
+        <div class="tl-section-title">ATTACK PATH</div>
+        <div class="sec-path" id="sec-path">
+          <div class="sec-path-node" id="sec-path-attacker">
+            <span class="sec-path-ico">🧑‍💻</span><span>ATTACKER</span>
+            <span class="sec-path-sub" id="sec-path-attacker-sub">no connection</span>
+          </div>
+          <div class="sec-path-link" id="sec-path-link1"></div>
+          <div class="sec-path-node sec-path-gateway" id="sec-path-gateway">
+            <span class="sec-path-ico" id="sec-path-shield-ico">🛡</span><span>GATEWAY / SHIELD</span>
+            <span class="sec-path-sub" id="sec-path-gateway-sub">legacy port :8767</span>
+          </div>
+          <div class="sec-path-link" id="sec-path-link2"></div>
+          <div class="sec-path-node" id="sec-path-dashboard">
+            <span class="sec-path-ico">🖥️</span><span>DASHBOARD</span>
+            <span class="sec-path-sub">browser clients</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Impact meters — only meaningful while shield is OFF and an
+         attack is actively succeeding; hidden otherwise. -->
+    <div class="testlab-grid" style="grid-template-columns:1fr" id="sec-impact-wrap">
+      <div class="testlab-card" id="sec-impact-card" style="display:none">
+        <div class="tl-section-title">LIVE IMPACT — SHIELD IS DOWN</div>
+        <div class="tl-live-effect-grid" id="sec-impact-grid">
+          <div class="tl-live-cell"><div class="tl-live-val" id="sec-impact-type">—</div><div class="tl-live-key">ATTACK TYPE</div></div>
+          <div class="tl-live-cell"><div class="tl-live-val" id="sec-impact-params">—</div><div class="tl-live-key">PARAMS</div></div>
+          <div class="tl-live-cell"><div class="tl-live-val" id="sec-impact-remaining">—</div><div class="tl-live-key">REMAINING (s)</div></div>
+        </div>
+        <div class="tl-progress-track"><div class="tl-progress-fill danger" id="sec-impact-bar" style="width:0%"></div></div>
+      </div>
+    </div>
+
+    <div class="testlab-grid">
+      <!-- ATTACKER PROFILE — only realistically knowable fields -->
+      <div class="testlab-card">
+        <div class="tl-section-title">ATTACKER PROFILE</div>
+        <div id="sec-attacker-card" class="sec-attacker-card">
+          <div class="tl-current-empty">No attacker connected this session.</div>
+        </div>
+      </div>
+
+      <!-- LIVE ATTACK FEED -->
+      <div class="testlab-card">
+        <div class="tl-section-title">LIVE ATTACK FEED</div>
+        <div class="sec-feed-list" id="sec-feed-list">
+          <div class="tl-history-empty">No attack events yet this session.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="testlab-grid" style="grid-template-columns:1fr">
+      <div class="testlab-card">
+        <div class="tl-section-title">FIREWALL / IDS STATUS</div>
+        <div id="ids-status" class="ids-status">No failed-auth activity recorded yet.</div>
+        <div class="testlab-note">Unrelated to the Shield: this still tracks repeated failed-token connections to :8765/:8766 and temporarily blocks that IP. The Shield never bans an attacker — it blocks the injected data itself, so an attacker can always retry.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Screen-edge flash — briefly outlines the viewport red when an
+     attack actually lands (shield off, verdict succeeded). -->
+<div id="flash-overlay"></div>
+
+<div id="toast"></div>
+
+<script src="app.js"></script>
+</body>
+</html>

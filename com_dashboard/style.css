@@ -1,0 +1,562 @@
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg0:#020408;--bg1:#060c14;--bg2:#0a1220;--bg3:#0f1a2e;--bg4:#162240;
+  --blue:#0a84ff;--blue2:#0055cc;--cyan:#00d4ff;--cyan2:#007a99;
+  --green:#00ff88;--green2:#006633;--red:#ff2244;--red2:#880022;
+  --amber:#ffaa00;--amber2:#885500;--purple:#8844ff;
+  /* UI-quality pass (Item 7): brightened low-contrast text tokens so
+     secondary copy reads clearly without raising screen brightness. */
+  --fg:#d8e8ff;--fg2:#84a2c9;--fg3:#4a628a;
+  --mono:'Share Tech Mono',monospace;--head:'Orbitron',sans-serif;
+
+  --fs-h1: clamp(32px,4vw,44px);
+  --fs-h2: 26px;
+  --fs-h3: 20px;
+  --fs-body: 16px;
+  --fs-btn: 15px;
+  --fs-secondary: 13px;
+  --fs-micro: 12px;
+}
+html,body{width:100%;height:100%;background:var(--bg0);color:var(--fg);font-family:var(--mono);font-size:var(--fs-body);line-height:1.5;overflow:hidden}
+body{display:flex;flex-direction:column}
+:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+
+/* ── Top bar ── */
+#topbar{height:56px;background:var(--bg1);border-bottom:1px solid var(--bg4);display:flex;align-items:center;padding:0 16px;gap:12px;flex-shrink:0}
+.logo{font-family:var(--head);font-size:var(--fs-h3);color:var(--cyan);letter-spacing:.1em;white-space:nowrap}
+.logo small{font-size:var(--fs-micro);color:var(--fg2);display:block;letter-spacing:.16em}
+.tb-sep{width:1px;height:30px;background:var(--bg4)}
+.badge{display:flex;align-items:center;gap:6px;background:var(--bg2);border:1px solid var(--bg4);border-radius:4px;padding:5px 10px;white-space:nowrap;transition:.2s}
+.badge .dot{width:9px;height:9px;border-radius:50%;background:var(--red);transition:.3s}
+.badge .dot.on{background:var(--green);box-shadow:0 0 6px var(--green)}
+.badge .dot.warn{background:var(--amber);animation:blinkDot 1s ease-in-out infinite}
+@keyframes blinkDot{0%,100%{opacity:1}50%{opacity:.35}}
+.badge label{font-size:var(--fs-micro);color:var(--fg2);letter-spacing:.08em;display:block}
+.badge span{font-size:var(--fs-secondary);color:var(--fg)}
+.spacer{flex:1}
+.real-badge{font-size:var(--fs-micro);color:var(--green);border:1px solid var(--green2);background:rgba(0,255,136,.08);padding:6px 13px;border-radius:4px;letter-spacing:.08em}
+
+/* ── TLS Shield toggle (topbar) ──────────────────────────────────── */
+.shield-toggle{display:flex;align-items:center;gap:7px;font-family:var(--head);font-size:var(--fs-secondary);letter-spacing:.06em;padding:7px 14px;border-radius:4px;cursor:pointer;transition:.18s;background:var(--bg3)}
+.shield-toggle .shield-ico{font-size:15px}
+.shield-toggle.on{border:1px solid var(--green2);color:var(--green)}
+.shield-toggle.on:hover{background:rgba(0,255,136,.12);transform:translateY(-1px)}
+.shield-toggle.off{border:1.5px solid var(--red);color:#fff;background:var(--red2);animation:shieldOffPulse 1.1s ease-in-out infinite}
+.shield-toggle.off:hover{background:var(--red)}
+@keyframes shieldOffPulse{0%,100%{box-shadow:0 0 0 0 rgba(255,34,68,.45)}50%{box-shadow:0 0 0 6px rgba(255,34,68,0)}}
+.seccenter-btn{font-family:var(--head);font-size:var(--fs-secondary);letter-spacing:.06em;background:var(--bg3);border:1px solid var(--bg4);color:var(--fg2);padding:7px 14px;border-radius:4px;cursor:pointer;transition:.15s}
+.seccenter-btn:hover{border-color:var(--cyan);color:var(--cyan)}
+
+/* Body-level "link exposed" chrome while the shield is off — a thin
+   red stripe under the topbar, visible from anywhere in the app. */
+body.shield-down #topbar{border-bottom-color:var(--red2);box-shadow:0 2px 0 0 var(--red)}
+
+/* ── Content grid ── */
+#content{flex:1;display:flex;overflow:hidden}
+#panel-left{width:224px;background:var(--bg1);border-right:1px solid var(--bg4);overflow-y:auto;flex-shrink:0}
+#panel-right{width:248px;background:var(--bg1);border-left:1px solid var(--bg4);overflow-y:auto;flex-shrink:0}
+#panel-center{flex:1;display:flex;flex-direction:column;overflow:hidden;padding:16px;gap:10px;min-width:0}
+
+.p-head{font-size:var(--fs-secondary);letter-spacing:.14em;color:var(--cyan);padding:12px 14px 9px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--bg3);justify-content:space-between}
+.p-head-sub{color:var(--fg3);letter-spacing:.04em;font-size:var(--fs-micro);text-transform:none}
+.p-section{padding:13px 14px}
+.p-subhead{font-size:var(--fs-micro);color:var(--fg2);letter-spacing:.1em;margin:12px 0 6px}
+
+/* ── Topology ── */
+#topo-svg{display:block;margin:4px auto}
+.topo-link{stroke:var(--bg4);stroke-width:2.5;fill:none;transition:stroke .4s}
+.topo-link.live{stroke:var(--cyan)}
+.topo-pulse{fill:var(--cyan);opacity:0;filter:drop-shadow(0 0 4px var(--cyan))}
+.topo-pulse.active{opacity:1}
+.topo-node .topo-ring{fill:none;stroke:var(--fg3);stroke-width:2.5;transition:.4s}
+.topo-node.on .topo-ring{stroke:var(--green)}
+.topo-node.warn .topo-ring{stroke:var(--amber);animation:ringBlink 1s ease-in-out infinite}
+.topo-node.off .topo-ring{stroke:var(--red)}
+@keyframes ringBlink{0%,100%{opacity:1}50%{opacity:.4}}
+.topo-node .topo-core{fill:var(--bg3);stroke:var(--bg4);stroke-width:1;transition:.4s}
+.topo-node.on .topo-core{fill:#06210f}
+.topo-node.off .topo-core{fill:#210608}
+.topo-node .topo-activity{fill:transparent;transition:.3s}
+.topo-node.on.active-traffic .topo-activity{fill:var(--cyan);animation:activityPulse 1s ease-in-out infinite}
+.topo-node.on:not(.active-traffic) .topo-activity{fill:var(--fg3);opacity:.5}
+@keyframes activityPulse{0%,100%{r:9;opacity:1}50%{r:12;opacity:.55}}
+.topo-node text{fill:var(--fg);font-family:var(--head);font-size:13px}
+.topo-state-lbl{fill:var(--fg2);font-family:var(--mono);font-size:11px;letter-spacing:.06em}
+.topo-activity-lbl{fill:var(--cyan);font-family:var(--mono);font-size:9px;letter-spacing:.05em}
+.topo-legend{margin-top:10px;font-size:var(--fs-secondary);color:var(--fg2);display:flex;flex-direction:column;gap:7px}
+.lg-dot{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:7px;background:var(--fg3)}
+.lg-dot.lg-on{background:var(--green)}
+.lg-dot.lg-off{background:var(--red)}
+.lg-dot.lg-warn{background:var(--amber)}
+.lg-pulse{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:7px;background:var(--cyan);animation:activityPulse 1s ease-in-out infinite}
+
+/* ── Stats ── */
+.tele-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.tele-cell{background:var(--bg3);border:1px solid var(--bg4);border-radius:4px;padding:9px;text-align:center;transition:.2s}
+.tele-cell:hover{border-color:var(--cyan2)}
+.tele-val{font-family:var(--head);font-size:var(--fs-h3);color:var(--cyan);line-height:1}
+.tele-key{font-size:var(--fs-micro);color:var(--fg2);letter-spacing:.08em;margin-top:5px}
+.cat-breakdown{display:flex;flex-direction:column;gap:6px;font-size:var(--fs-secondary)}
+.cat-row{display:flex;align-items:center;gap:8px}
+.cat-swatch{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+.cat-name{flex:1;color:var(--fg2)}
+.cat-count{color:var(--fg);font-family:var(--head)}
+
+/* ═══════════════════════════════════════════ THREE-CARD VIEW ═══ */
+.cards-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;flex:1;min-height:0}
+.flow-caption{text-align:center;font-size:var(--fs-micro);color:var(--fg3);letter-spacing:.12em;padding:2px 0}
+.flow-arrow{color:var(--cyan);margin:0 6px}
+
+.obs-card{background:var(--bg1);border:1px solid var(--bg4);border-radius:10px;display:flex;flex-direction:column;cursor:pointer;transition:.2s;overflow:hidden;position:relative}
+.obs-card:hover{border-color:var(--cyan2);transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.35)}
+.obs-card:active{transform:translateY(0)}
+.card-head{display:flex;align-items:center;gap:10px;padding:14px 16px;background:linear-gradient(180deg,var(--bg2),var(--bg1));border-bottom:1px solid var(--bg4)}
+.card-icon{font-size:22px}
+.card-titles{flex:1;min-width:0}
+.card-title{font-family:var(--head);font-size:var(--fs-secondary);color:var(--fg);letter-spacing:.08em}
+.card-sub{font-size:var(--fs-micro);color:var(--fg2);margin-top:2px}
+.card-expand{color:var(--fg3);font-size:16px;transition:.2s}
+.obs-card:hover .card-expand{color:var(--cyan)}
+.card-body{flex:1;padding:14px 16px;display:flex;flex-direction:column;gap:10px;min-height:0}
+.card-foot{padding:9px 16px;font-size:var(--fs-micro);color:var(--fg3);border-top:1px solid var(--bg3);background:var(--bg2)}
+
+.card-latest-label{font-size:var(--fs-micro);color:var(--fg3);letter-spacing:.1em;display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+#c3-latest-time{font-style:italic;white-space:nowrap;flex-shrink:0}
+.card-latest{font-size:var(--fs-secondary);color:var(--fg);line-height:1.5;min-height:2.6em}
+.card-latest-time{font-size:var(--fs-micro);color:var(--fg3)}
+.card-mini-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:auto}
+.card-mini-grid.cols-3{grid-template-columns:1fr 1fr 1fr}
+.card-mini-grid.cols-4{grid-template-columns:1fr 1fr 1fr 1fr}
+.mini-stat{background:var(--bg2);border:1px solid var(--bg4);border-radius:5px;padding:8px;text-align:center}
+.mini-val{font-family:var(--head);font-size:14px;color:var(--cyan)}
+.mini-key{font-size:10px;color:var(--fg2);letter-spacing:.08em;margin-top:3px}
+
+/* ── Card 1 pose preview strip ────────────────────────────────── */
+.pose-preview{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}
+.pose-preview::-webkit-scrollbar{height:4px}
+.pose-chip{flex-shrink:0;background:var(--bg2);border:1px solid var(--bg4);border-radius:5px;padding:5px 8px;text-align:center;min-width:52px}
+.pose-chip-lbl{font-size:9px;color:var(--fg3);letter-spacing:.06em;display:block}
+.pose-chip-val{font-size:11px;color:var(--cyan);font-family:var(--head);display:block;margin-top:2px}
+.pose-preview-empty{font-size:var(--fs-micro);color:var(--fg3);padding:6px 0}
+
+/* ── generic detail filter tabs (reused by all three cards) ──────── */
+.c1-filter-row{display:flex;gap:6px;flex-wrap:wrap;padding:0 0 8px}
+.c1-filter-btn{background:var(--bg3);border:1px solid var(--bg4);color:var(--fg2);font-family:var(--mono);font-size:var(--fs-micro);padding:4px 10px;border-radius:12px;cursor:pointer;transition:.15s}
+.c1-filter-btn:hover{border-color:var(--cyan);color:var(--cyan)}
+.c1-filter-btn.active{background:var(--blue2);border-color:var(--blue);color:#fff}
+
+/* ═══════════════════════════════════════════ CARD 1 — 3D ROBOT ═══ */
+.c1-robot-wrap{position:relative;height:150px;background:radial-gradient(ellipse at 50% 100%,rgba(0,212,255,.08),transparent 70%);border:1px solid var(--bg4);border-radius:8px;overflow:hidden;flex-shrink:0}
+.c1-robot-canvas{display:block;width:100%;height:100%}
+.c1-robot-badge{position:absolute;top:6px;left:6px;font-size:9px;letter-spacing:.08em;background:rgba(2,4,8,.75);border:1px solid var(--bg4);color:var(--fg2);padding:3px 8px;border-radius:10px;pointer-events:none}
+.c1-robot-badge.live{color:var(--green);border-color:var(--green2)}
+.c1-robot-badge.stale{color:var(--amber);border-color:var(--amber2)}
+.c1-robot-badge.disc{color:var(--red);border-color:var(--red2)}
+
+.joint-hud-compact{display:grid;grid-template-columns:repeat(3,1fr);gap:4px}
+.jhc-cell{background:var(--bg2);border:1px solid var(--bg4);border-radius:4px;padding:4px 6px;display:flex;justify-content:space-between;align-items:center;font-size:10px}
+.jhc-tag{color:var(--fg3);font-family:var(--head)}
+.jhc-val{color:var(--fg);font-family:var(--head)}
+.jhc-val.live{color:var(--cyan)}
+
+/* Card1 detail split layout */
+.c1-detail{flex:1;display:grid;grid-template-columns:280px 1fr;gap:14px;min-height:0;overflow:hidden}
+.c1-detail-left{display:flex;flex-direction:column;min-height:0;overflow:hidden;background:var(--bg2);border:1px solid var(--bg4);border-radius:8px;padding:10px}
+.c1-detail-right{display:flex;flex-direction:column;gap:10px;min-height:0;overflow-y:auto;padding-right:4px}
+.c1-detail-subhead{font-size:11px;letter-spacing:.12em;color:var(--cyan);margin-bottom:8px;font-family:var(--head)}
+.c1-history-list{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:6px}
+.c1-history-item{background:var(--bg3);border:1px solid var(--bg4);border-left:3px solid var(--bg4);border-radius:5px;padding:8px 10px;cursor:pointer;transition:.15s}
+.c1-history-item:hover{border-color:var(--cyan2)}
+.c1-history-item.selected{border-left-color:var(--cyan);background:var(--bg4)}
+.c1-history-item .hi-title{font-size:12px;color:var(--fg)}
+.c1-history-item .hi-time{font-size:10px;color:var(--fg3);margin-top:3px}
+.c1-history-empty{color:var(--fg3);font-size:var(--fs-secondary);text-align:center;padding:24px 0}
+
+.c1-robot-wrap-lg{position:relative;height:320px;background:radial-gradient(ellipse at 50% 100%,rgba(0,212,255,.08),transparent 70%);border:1px solid var(--bg4);border-radius:10px;overflow:hidden;flex-shrink:0}
+.c1-robot-canvas-lg{display:block;width:100%;height:100%}
+.c1-cam-btns{position:absolute;bottom:8px;left:8px;display:flex;gap:6px}
+.c1-cam-btns button{background:rgba(10,18,32,.85);border:1px solid var(--bg4);color:var(--fg2);font-family:var(--head);font-size:10px;letter-spacing:.06em;padding:5px 10px;border-radius:4px;cursor:pointer;transition:.15s}
+.c1-cam-btns button:hover{border-color:var(--cyan);color:var(--cyan)}
+
+.joint-hud-full{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.jhf-cell{background:var(--bg2);border:1px solid var(--bg4);border-radius:5px;padding:6px 9px;display:flex;justify-content:space-between;align-items:center}
+.jhf-lbl{font-size:11px;color:var(--fg2)}
+.jhf-val{font-size:12px;color:var(--fg);font-family:var(--head)}
+.jhf-val.live{color:var(--cyan)}
+
+.c1-selected-panel{background:var(--bg2);border:1px solid var(--bg4);border-radius:8px;padding:12px}
+.c1-selected-body{font-size:12px;color:var(--fg2);line-height:1.9}
+.c1-selected-body .sf-row{display:flex;justify-content:space-between;border-bottom:1px dashed var(--bg4);padding:3px 0}
+.c1-selected-body .sf-key{color:var(--fg3)}
+.c1-selected-body .sf-val{color:var(--fg)}
+.c1-payload-panel{margin-top:10px;background:var(--bg0);border:1px solid var(--bg4);border-radius:5px;padding:8px;font-size:11px;color:var(--fg2);max-height:220px;overflow-y:auto}
+.c1-payload-pose{padding:3px 0;border-bottom:1px solid var(--bg3)}
+
+/* ═══════════════════════════════════════════ CARD 2 — LANES ═══ */
+.lane-block{background:var(--bg2);border:1px solid var(--bg4);border-radius:8px;padding:10px 12px}
+.lane-hdr{display:flex;align-items:center;gap:8px;font-size:10px;margin-bottom:4px;flex-wrap:wrap}
+.lane-tag{font-family:var(--head);font-size:10px;letter-spacing:.08em;padding:2px 8px;border-radius:10px}
+.lane-tag.out{background:rgba(0,255,136,.12);color:var(--green);border:1px solid var(--green2)}
+.lane-tag.in{background:rgba(0,212,255,.12);color:var(--cyan);border:1px solid var(--cyan2)}
+.lane-desc{color:var(--fg2);flex:1}
+.lane-state{color:var(--fg3);letter-spacing:.06em;font-family:var(--head)}
+.lane-state.active{color:var(--amber)}
+.lane-svg{width:100%;height:auto;display:block}
+.lane-track{stroke:var(--bg4);stroke-width:2}
+.lane-node{fill:var(--bg3);stroke:var(--fg3);stroke-width:1.5;transition:.3s}
+.lane-node.active{stroke:var(--cyan);fill:#06202c}
+.lane-lbl{fill:var(--fg2);font-size:8px;font-family:var(--mono);letter-spacing:.02em}
+.lane-dot{fill:var(--cyan);opacity:0;filter:drop-shadow(0 0 4px var(--cyan))}
+
+.c2-detail{flex:1;display:flex;flex-direction:column;gap:12px;min-height:0;overflow-y:auto}
+.lane-block-lg{padding:14px 18px}
+.lane-svg-lg{width:100%;height:auto;display:block;margin-top:4px}
+.c2-tx-wrap{flex:1;min-height:0;display:flex}
+.c2-tx-list-wrap{flex:1;display:flex;flex-direction:column;min-height:0;background:var(--bg2);border:1px solid var(--bg4);border-radius:8px;padding:10px}
+.c2-tx-list{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:4px}
+.c2-tx-item{display:grid;grid-template-columns:60px 90px 1fr 70px;gap:8px;align-items:center;padding:6px 9px;font-size:12px;border-bottom:1px solid var(--bg3);cursor:pointer;border-radius:3px}
+.c2-tx-item:hover{background:var(--bg3)}
+.c2-tx-item.selected{background:var(--bg4);border-left:2px solid var(--cyan)}
+.c2-tx-id{color:var(--fg3);font-family:var(--head);font-size:10px}
+.c2-tx-dir{font-size:10px;letter-spacing:.05em;padding:2px 6px;border-radius:8px;text-align:center}
+.c2-tx-dir.OUTBOUND{background:rgba(0,255,136,.12);color:var(--green)}
+.c2-tx-dir.INBOUND{background:rgba(0,212,255,.12);color:var(--cyan)}
+.c2-tx-desc{color:var(--fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.c2-tx-time{color:var(--fg3);font-size:10px;text-align:right}
+
+/* ═══════════════════════════════════════════ CARD 3 — QNX RTOS ═══ */
+.thread-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.thread-mini{background:var(--bg2);border:1px solid var(--bg4);border-radius:6px;padding:8px;text-align:center}
+.thread-mini-name{font-family:var(--head);font-size:10px;color:var(--fg);letter-spacing:.02em;overflow-wrap:break-word}
+.thread-mini-sched{font-size:9px;color:var(--fg3);margin-top:2px;letter-spacing:.02em}
+.thread-mini-state{display:flex;align-items:center;justify-content:center;gap:5px;margin-top:6px;font-size:10px}
+.th-dot{width:7px;height:7px;border-radius:50%;background:var(--fg3);flex-shrink:0}
+.th-state-txt{color:var(--fg2);letter-spacing:.04em}
+.thread-mini.active .th-dot,.thread-card.active .th-dot{background:var(--green);box-shadow:0 0 6px var(--green)}
+.thread-mini.active .th-state-txt,.thread-card.active .th-state-txt{color:var(--green)}
+.thread-mini.busy .th-dot,.thread-card.busy .th-dot{background:var(--amber);box-shadow:0 0 6px var(--amber);animation:activityPulse 1s ease-in-out infinite}
+.thread-mini.busy .th-state-txt,.thread-card.busy .th-state-txt{color:var(--amber)}
+.thread-mini.danger .th-dot,.thread-card.danger .th-dot{background:var(--red);box-shadow:0 0 6px var(--red)}
+.thread-mini.danger .th-state-txt,.thread-card.danger .th-state-txt{color:var(--red)}
+
+/* Passive "story" emphasis — whichever thread is the interesting one right
+   now gets a border/elevation lift; the other two recede slightly. Never
+   applied via click, only via real state (see _c3StoryThread() in app.js).
+   No pulsing/looping here — .busy already owns the animated-attention
+   treatment; .story is a calm, static emphasis layered on top of it. */
+.thread-mini.story,.thread-card.story{border-color:var(--cyan);box-shadow:0 0 0 1px rgba(0,212,255,.25),0 4px 14px rgba(0,212,255,.12)}
+.thread-mini.story.danger,.thread-card.story.danger{border-color:var(--red);box-shadow:0 0 0 1px rgba(255,34,68,.3),0 4px 14px rgba(255,34,68,.15)}
+.thread-mini.dim,.thread-card.dim{opacity:.62}
+
+/* ── Card 3 overview: controller → threads → bridge architecture ──
+   This IS the card, not a decoration on top of stat tiles. Priority is
+   carried inline on each thread card (.thread-mini-sched), not as a
+   separate detached chart. */
+.c3-arch{display:flex;flex-direction:column;align-items:stretch;gap:0}
+.c3-arch-node{text-align:center;font-family:var(--head);font-size:11px;letter-spacing:.1em;color:var(--fg2);padding:2px 0}
+.c3-arch-bridge{font-family:var(--mono);font-size:10px;letter-spacing:.04em;color:var(--fg3);text-transform:uppercase}
+.c3-arch-bridge span{font-family:var(--head);font-weight:700}
+.c3-arch-connector{width:100%;height:22px;display:block;flex-shrink:0}
+.c3-arch-connector-down{height:18px}
+.c3-arch-line{stroke:var(--bg4);stroke-width:1.5;fill:none}
+
+/* ── Card 3 emergency-override banner (overview) ──────────────────
+   Replaces the routine mini-stat/last-event footer entirely while an
+   emergency is active. Deliberately not just a red mini-stat cell —
+   this is the single most safety-critical fact the app can show. */
+.c3-emergency-banner{display:flex;align-items:center;gap:12px;background:rgba(255,34,68,.1);border:1.5px solid var(--red);border-radius:8px;padding:10px 14px;margin-top:auto;animation:c3EmPulse 1.6s ease-in-out infinite}
+.c3-emergency-ico{font-size:22px;color:var(--red);flex-shrink:0}
+.c3-emergency-text{min-width:0}
+.c3-emergency-title{font-family:var(--head);font-size:12px;letter-spacing:.1em;color:var(--red)}
+.c3-emergency-msg{font-size:11px;color:#ffb3bd;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@keyframes c3EmPulse{0%,100%{box-shadow:0 0 0 0 rgba(255,34,68,.25)}50%{box-shadow:0 0 0 5px rgba(255,34,68,0)}}
+.c3-normal-footer{display:flex;flex-direction:column;gap:8px;margin-top:auto}
+.c3-safety-chip{align-self:flex-start;display:flex;align-items:center;gap:7px;font-family:var(--head);font-size:11px;letter-spacing:.05em;color:var(--fg2);background:var(--bg2);border:1px solid var(--bg4);border-radius:20px;padding:4px 12px}
+.c3-safety-chip .th-dot{background:var(--green)}
+.c3-safety-chip #c3-safety-sum{color:var(--green)}
+.c3-safety-chip.danger{border-color:var(--red2);background:rgba(255,34,68,.08)}
+.c3-safety-chip.danger .th-dot{background:var(--red);box-shadow:0 0 6px var(--red)}
+.c3-safety-chip.danger #c3-safety-sum{color:var(--red)}
+.c3-arch-bridge.offline{color:var(--red)}
+
+.c3-detail{flex:1;display:flex;flex-direction:column;gap:16px;min-height:0;overflow-y:auto;padding-right:2px}
+.c3-region{background:var(--bg1)}
+.thread-row-lg{grid-template-columns:1fr 1fr 1fr;gap:12px}
+.thread-card{background:var(--bg2);border:1px solid var(--bg4);border-radius:8px;padding:14px;text-align:center;cursor:pointer;transition:.18s}
+.thread-card:hover{border-color:var(--cyan2)}
+.thread-card.selected{border-color:var(--blue);box-shadow:0 0 0 1px var(--blue) inset}
+.thread-card-name{font-family:var(--head);font-size:13px;color:var(--fg);letter-spacing:.05em}
+.thread-card-sched{font-size:10px;color:var(--fg3);margin-top:4px;letter-spacing:.02em}
+.thread-card-state{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:10px;font-size:11px}
+
+/* Region 2: Selected Thread (facts only) | QNX->Bridge Output.
+   Deliberately NOT flex-column-stretch inside the grid cell -- nesting a
+   flex:1 child inside a grid item breaks Chromium/Firefox's intrinsic
+   content-height measurement for grid auto-row-sizing (confirmed via
+   real rendered screenshots during this build), which is exactly what
+   caused the previous version's inspector text to visually spill out
+   past its own box into the section below. Natural block flow + the
+   parent .c3-detail scroll container handles any overflow safely. */
+.c3-split{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.c3-split-left,.c3-split-right{background:var(--bg2);border:1px solid var(--bg4);border-radius:8px;padding:14px}
+.c3-thread-inspector{font-size:12px;color:var(--fg2);line-height:1.9}
+.c3-thread-inspector .ti-row{display:flex;justify-content:space-between;gap:10px;border-bottom:1px dashed var(--bg4);padding:4px 0}
+.c3-thread-inspector .ti-key{color:var(--fg3);flex-shrink:0}
+.c3-thread-inspector .ti-val{color:var(--fg);text-align:right;overflow-wrap:anywhere}
+.ti-source-row{margin-top:12px}
+.ti-source{display:inline-block;font-size:10px;letter-spacing:.05em;padding:3px 8px;border-radius:10px;font-family:var(--mono)}
+.ti-source.real{background:rgba(0,255,136,.1);color:var(--green);border:1px solid var(--green2)}
+.ti-source.inferred{background:rgba(255,170,0,.08);color:var(--amber);border:1px solid var(--amber2)}
+
+.c3-output-panel{display:flex;flex-direction:column;gap:10px}
+.c3-out-group{background:var(--bg3);border:1px solid var(--bg4);border-radius:6px;padding:8px 10px}
+.c3-out-group-title{font-size:10px;color:var(--fg2);letter-spacing:.08em;margin-bottom:6px;font-family:var(--head)}
+.c3-out-item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--fg3);padding:3px 0}
+.c3-out-item .th-dot{width:6px;height:6px;flex-shrink:0}
+.c3-out-lbl{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.c3-out-ago{font-size:9px;color:var(--fg3);letter-spacing:.03em;flex-shrink:0}
+.c3-out-ago.none{opacity:.5;font-style:italic}
+.c3-out-item.recent{color:var(--fg)}
+.c3-out-item.recent .c3-out-ago{color:var(--cyan)}
+.c3-out-item.recent .th-dot{background:var(--cyan);box-shadow:0 0 5px var(--cyan)}
+
+/* Region 3: QNX Execution / Event Flow -- a real, thread-specific
+   diagram for whichever thread is selected above (not a generic filter
+   bar). Motion gets a stepper, Safety a two-branch diagram, Recv a
+   linear receive->parse->state pipeline. */
+.c3-flow-panel{background:var(--bg2);border:1px solid var(--bg4);border-radius:8px;padding:18px}
+.ti-stepper{display:flex;flex-direction:column;max-width:420px;margin:0 auto}
+.ti-step{position:relative;display:flex;align-items:center;gap:12px;padding:7px 0 7px 4px;font-size:12px;color:var(--fg3)}
+.ti-step::before{content:'';position:absolute;left:9px;top:-2px;bottom:-2px;width:1px;background:var(--bg4)}
+.ti-step:first-child::before{top:50%}
+.ti-step:last-child::before{bottom:50%}
+.ti-step-dot{position:relative;z-index:1;width:10px;height:10px;border-radius:50%;background:var(--bg3);border:2px solid var(--fg3);flex-shrink:0}
+.ti-step.done{color:var(--fg2)}
+.ti-step.done .ti-step-dot{background:var(--green);border-color:var(--green)}
+.ti-step.done::before{background:var(--green2)}
+.ti-step.active{color:var(--cyan);font-weight:600}
+.ti-step.active .ti-step-dot{background:var(--cyan);border-color:var(--cyan);box-shadow:0 0 6px var(--cyan)}
+/* One-shot glow/pulse — plays only when a genuinely new real QNX/bridge
+   event moves the flow to this stage (see _lastMotionFlowSig in app.js),
+   never on a timer and never for stages the UI merely re-renders through
+   without a fresh event. Settles into the steady .active look above. */
+.ti-step.active.pulse{border-radius:6px;animation:tiStepRowFlash .8s ease-out}
+.ti-step.active.pulse .ti-step-dot{animation:tiStepDotPulse .8s ease-out}
+@keyframes tiStepRowFlash{0%{background:rgba(0,212,255,.22)}100%{background:transparent}}
+@keyframes tiStepDotPulse{0%{box-shadow:0 0 18px 6px var(--cyan);transform:scale(1.45)}100%{box-shadow:0 0 6px var(--cyan);transform:scale(1)}}
+
+.ti-branch-wrap{max-width:420px;margin:0 auto}
+.ti-branch-src{text-align:center;font-family:var(--head);font-size:12px;letter-spacing:.06em;color:var(--fg2);margin-bottom:14px}
+.ti-branch-src-sub{display:block;font-family:var(--mono);font-size:10px;color:var(--fg3);letter-spacing:.04em;margin-top:3px;font-weight:400}
+.ti-branch-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ti-branch{border:1px solid var(--bg4);background:var(--bg3);border-radius:6px;padding:12px 10px;text-align:center;font-family:var(--head);font-size:11px;letter-spacing:.05em;color:var(--fg3);opacity:.55;transition:.2s}
+.ti-branch-sub{display:block;font-family:var(--mono);font-size:9px;color:var(--fg3);letter-spacing:.02em;margin-top:6px;font-weight:400;line-height:1.5}
+.ti-branch.active{opacity:1;border-color:var(--green);color:var(--green)}
+.ti-branch.danger.active{border-color:var(--red);color:var(--red);background:rgba(255,34,68,.08)}
+
+.ti-pipeline{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:6px;row-gap:14px}
+.ti-pipe-step{border:1px solid var(--bg4);background:var(--bg3);border-radius:6px;padding:8px 12px;font-family:var(--head);font-size:10px;letter-spacing:.04em;color:var(--fg3);text-align:center;transition:.2s}
+.ti-pipe-arrow{color:var(--fg3);font-size:14px;flex-shrink:0}
+.ti-pipe-step.active{border-color:var(--cyan);color:var(--cyan);background:rgba(0,212,255,.08);box-shadow:0 0 8px rgba(0,212,255,.2)}
+
+.ti-flow-note{margin-top:14px;font-size:11px;color:var(--fg3);line-height:1.7;padding:9px 12px;background:var(--bg3);border-radius:6px;border:1px solid var(--bg4);max-width:520px;margin-left:auto;margin-right:auto;text-align:center}
+.ti-flow-note.danger{color:#ffb3bd;background:rgba(255,34,68,.08);border-color:var(--red2)}
+
+/* Region 4: bounded, plain event history (no filter-tab wall -- see
+   redesign notes; coalescing already collapses high-frequency repeats). */
+.c3-event-list{max-height:280px;overflow-y:auto;display:flex;flex-direction:column;gap:4px;background:var(--bg2);border:1px solid var(--bg4);border-radius:8px;padding:8px}
+.c3-event-item{display:grid;grid-template-columns:100px 1fr 70px;gap:8px;align-items:center;padding:6px 9px;font-size:12px;border-bottom:1px solid var(--bg3);cursor:pointer;border-radius:3px}
+.c3-event-item:hover{background:var(--bg3)}
+.c3-event-item.selected{background:var(--bg4)}
+.c3-event-cat{font-size:9px;padding:2px 6px;border-radius:8px;text-align:center;letter-spacing:.04em}
+.c3-event-desc{color:var(--fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.c3-event-count{display:inline-block;background:var(--bg4);color:var(--cyan);font-family:var(--head);font-size:9px;padding:1px 5px;border-radius:8px;margin-right:6px;letter-spacing:.02em}
+.c3-event-time{color:var(--fg3);font-size:10px;text-align:right}
+.c3-telemetry-inline{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:16px;padding-top:14px;border-top:1px solid var(--bg3)}
+.c3-tc-cell{background:var(--bg3);border:1px solid var(--bg4);border-radius:5px;padding:7px 10px;text-align:center;min-width:56px}
+.c3-tc-lbl{font-size:9px;color:var(--fg3);letter-spacing:.06em}
+.c3-tc-val{font-family:var(--head);font-size:13px;color:var(--cyan);margin-top:3px}
+
+
+/* ═══════════════════════════════════════════ DETAIL VIEW (shared) ═══ */
+.detail-view{flex:1;display:flex;flex-direction:column;min-height:0;background:var(--bg1);border:1px solid var(--bg4);border-radius:10px;overflow:hidden;padding:14px;gap:10px}
+.detail-head{display:flex;align-items:center;gap:12px;padding:0 0 4px;flex-wrap:wrap}
+.detail-back{background:var(--bg3);border:1px solid var(--bg4);color:var(--fg2);font-family:var(--mono);font-size:var(--fs-secondary);padding:6px 12px;border-radius:4px;cursor:pointer;transition:.15s}
+.detail-back:hover{border-color:var(--cyan);color:var(--cyan)}
+.detail-title{font-family:var(--head);font-size:var(--fs-secondary);color:var(--cyan);letter-spacing:.08em;flex:1}
+.filter-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.filter-row select, .filter-row button{background:var(--bg3);border:1px solid var(--bg4);color:var(--fg2);font-family:var(--mono);font-size:var(--fs-secondary);padding:5px 9px;border-radius:3px;cursor:pointer;transition:.15s}
+.filter-row button:hover{border-color:var(--cyan);color:var(--cyan)}
+.filter-row button.active{background:var(--blue2);color:#fff;border-color:var(--blue)}
+
+.cat-telemetry{background:#0a2a3a;color:var(--cyan)}
+.cat-command{background:#1a2a0a;color:var(--green)}
+.cat-ack{background:#0a2a12;color:var(--green)}
+.cat-sequence{background:#1a0a3a;color:var(--purple)}
+.cat-emergency{background:#3a0a10;color:var(--red)}
+.cat-system_status{background:#2a1800;color:var(--amber)}
+.cat-error{background:#3a0a0a;color:var(--red)}
+.cat-security{background:#3a0a2a;color:#ff66cc}
+.cat-thread_status{background:#0a1a2a;color:#7ab8ff}
+
+/* ── Inspector ── */
+.inspector-empty{color:var(--fg3);font-size:var(--fs-secondary);text-align:center;padding:22px 0}
+.insp-field{margin-bottom:9px}
+.insp-label{font-size:var(--fs-micro);color:var(--fg2);letter-spacing:.08em;margin-bottom:2px}
+.insp-val{font-size:var(--fs-secondary);color:var(--fg)}
+.insp-decoded{background:var(--bg2);border:1px solid var(--bg4);border-radius:4px;padding:9px;font-size:var(--fs-secondary);color:var(--cyan);margin-bottom:10px}
+.insp-raw{background:var(--bg0);border:1px solid var(--bg4);border-radius:4px;padding:9px;font-size:var(--fs-micro);color:var(--fg2);white-space:pre-wrap;word-break:break-all;max-height:220px;overflow-y:auto}
+
+/* ── Timeline ── */
+#timeline-list{display:flex;flex-direction:column;gap:8px;max-height:280px;overflow-y:auto}
+.tl-item{background:var(--bg2);border:1px solid var(--bg4);border-radius:4px;padding:9px;font-size:var(--fs-secondary)}
+.tl-pair{display:flex;justify-content:space-between;color:var(--fg2);margin-bottom:3px}
+.tl-lat{color:var(--amber);font-family:var(--head);font-size:var(--fs-h3)}
+.latency-note{font-size:var(--fs-micro);color:var(--fg3);line-height:1.6;margin-top:10px}
+
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-thumb{background:var(--bg4)}
+
+/* ── Toast ── */
+#toast{position:fixed;bottom:16px;right:16px;background:var(--bg2);border:1px solid var(--cyan);border-radius:6px;padding:10px 18px;font-size:var(--fs-secondary);color:var(--cyan);z-index:900;opacity:0;transform:translateY(8px);transition:.3s;pointer-events:none;max-width:360px}
+#toast.show{opacity:1;transform:translateY(0)}
+
+/* ═══════════════════════════════════════════ SECURITY CENTER ═══ */
+#security-overlay{position:fixed;inset:0;background:rgba(2,4,8,.9);backdrop-filter:blur(5px);z-index:5000;display:flex;align-items:center;justify-content:center}
+#security-overlay.security-hidden{display:none}
+#security-panel{width:min(900px,92vw);max-height:88vh;overflow-y:auto;background:var(--bg1);border:2px solid var(--cyan2);border-radius:12px;box-shadow:0 0 50px rgba(0,212,255,.18)}
+.security-header{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid var(--bg4);background:linear-gradient(90deg,#071c26,var(--bg1))}
+.security-title{font-family:var(--head);font-size:var(--fs-h3);color:var(--cyan);letter-spacing:.08em}
+/* .testlab-close/.testlab-warning/.testlab-grid/.testlab-card/.testlab-note
+   are reused generic modal classes shared by the Security Center panel. */
+.testlab-close{background:var(--bg3);border:1px solid var(--bg4);color:var(--fg2);padding:7px 14px;border-radius:5px;cursor:pointer;font-size:var(--fs-secondary);transition:.15s}
+.testlab-close:hover{border-color:var(--red);color:var(--red)}
+.testlab-warning{margin:16px 22px;padding:13px 16px;background:rgba(255,34,68,.08);border:1px solid var(--red2);border-radius:8px;font-size:var(--fs-secondary);color:var(--fg);line-height:1.65}
+.testlab-warning code{background:var(--bg0);padding:1px 6px;border-radius:3px;color:var(--amber)}
+.testlab-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;padding:0 22px 22px}
+@media (max-width:640px){.testlab-grid{grid-template-columns:1fr}}
+.testlab-card{background:var(--bg2);border:1px solid var(--bg4);border-radius:10px;padding:18px}
+.testlab-card-title{font-family:var(--head);font-size:var(--fs-secondary);color:var(--cyan);letter-spacing:.1em;margin-bottom:12px}
+.testlab-status{display:flex;align-items:center;gap:8px;font-size:var(--fs-body);color:var(--fg);background:var(--bg3);border:1px solid var(--bg4);border-radius:6px;padding:10px 14px;margin-bottom:14px;transition:.3s}
+.testlab-status.active{color:var(--amber);border-color:var(--amber2);background:rgba(255,170,0,.08)}
+.fs-dot{width:9px;height:9px;border-radius:50%;background:var(--fg3);flex-shrink:0}
+.testlab-status.active .fs-dot{background:var(--amber);animation:activityPulse 1s ease-in-out infinite}
+.testlab-btns{display:flex;flex-direction:column;gap:9px}
+.tl-btn{display:flex;align-items:center;gap:10px;background:var(--bg3);border:1px solid var(--bg4);color:var(--fg);font-family:var(--mono);font-size:var(--fs-btn);padding:11px 14px;border-radius:6px;cursor:pointer;text-align:left;transition:.15s}
+.tl-btn em{margin-left:auto;font-style:normal;color:var(--fg3);font-size:var(--fs-micro)}
+.tl-btn-ico{font-size:16px}
+.tl-btn:hover{border-color:var(--cyan);color:var(--cyan);background:var(--bg4);transform:translateX(2px)}
+.tl-btn.tl-kill{border-color:var(--red2);color:var(--red);margin-top:6px}
+.tl-btn.tl-kill:hover{background:var(--red);color:#fff;border-color:var(--red);transform:none}
+.ids-status{font-size:var(--fs-secondary);color:var(--fg);line-height:1.9;background:var(--bg3);border:1px solid var(--bg4);border-radius:6px;padding:11px 14px;margin-bottom:12px;max-height:180px;overflow-y:auto}
+.ids-row-blocked{color:var(--red)}
+.ids-row-ok{color:var(--fg2)}
+.testlab-note{font-size:var(--fs-micro);color:var(--fg3);line-height:1.6}
+
+/* ═══════════════════════════════════════════ SECURITY STATUS WIDGET ═══ */
+.sec-widget{background:var(--bg2);border:1px solid var(--bg4);border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:8px}
+.sec-widget.active{border-color:var(--red2);background:rgba(255,34,68,.06)}
+.sec-widget-status{display:flex;align-items:center;gap:7px;font-size:var(--fs-secondary)}
+.sec-widget-status .fs-dot{background:var(--green)}
+.sec-widget.active .sec-widget-status .fs-dot{background:var(--red);animation:activityPulse 1s ease-in-out infinite}
+.sec-widget-detail{font-size:var(--fs-micro);color:var(--fg2);line-height:1.6}
+.sec-widget-detail b{color:var(--fg)}
+/* .tl-widget-open is reused for the "OPEN SECURITY CENTER →" button */
+.tl-widget-open{background:var(--bg3);border:1px solid var(--bg4);color:var(--fg2);font-family:var(--mono);font-size:var(--fs-micro);padding:6px 10px;border-radius:4px;cursor:pointer;transition:.15s;text-align:center}
+.tl-widget-open:hover{border-color:var(--cyan);color:var(--cyan)}
+
+/* ═══════════════════════════════════════════ TEST LAB REDESIGN ═══ */
+.tl-section-title{font-family:var(--head);font-size:11px;letter-spacing:.12em;color:var(--fg2);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.tl-section-title::after{content:'';flex:1;height:1px;background:var(--bg4)}
+
+.tl-current-empty{color:var(--fg3);font-size:var(--fs-secondary);text-align:center;padding:20px 0}
+.tl-progress-track{width:100%;height:8px;background:var(--bg3);border-radius:4px;overflow:hidden;border:1px solid var(--bg4)}
+.tl-progress-fill{height:100%;background:linear-gradient(90deg,var(--amber2),var(--amber));transition:width .3s linear}
+.tl-progress-fill.danger{background:linear-gradient(90deg,var(--red2),var(--red))}
+
+.tl-live-effect-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px}
+.tl-live-cell{background:var(--bg3);border:1px solid var(--bg4);border-radius:5px;padding:8px;text-align:center}
+.tl-live-val{font-family:var(--head);font-size:16px;color:var(--cyan)}
+.tl-live-key{font-size:9px;color:var(--fg2);letter-spacing:.06em;margin-top:3px}
+
+.tl-history-empty{color:var(--fg3);font-size:var(--fs-secondary);text-align:center;padding:14px 0}
+
+/* ═══════════════════════════════════════════ SECURITY CENTER — content ═══ */
+/* Threat banner — the single most important fact in the panel */
+.sec-banner{display:flex;align-items:center;gap:14px;border-radius:10px;padding:14px 18px;margin:0 22px 16px;border:1.5px solid var(--bg4);background:var(--bg2);transition:.25s}
+.sec-banner-ico{font-size:26px;flex-shrink:0}
+.sec-banner-title{font-family:var(--head);font-size:16px;letter-spacing:.08em}
+.sec-banner-sub{font-size:var(--fs-secondary);color:var(--fg2);margin-top:3px}
+.sec-banner-green{border-color:var(--green2);background:rgba(0,255,136,.07)}
+.sec-banner-green .sec-banner-title{color:var(--green)}
+.sec-banner-amber{border-color:var(--amber2);background:rgba(255,170,0,.08);animation:c3EmPulse 1.8s ease-in-out infinite}
+.sec-banner-amber .sec-banner-title{color:var(--amber)}
+.sec-banner-red{border-color:var(--red);background:rgba(255,34,68,.1);animation:c3EmPulse 1.2s ease-in-out infinite}
+.sec-banner-red .sec-banner-title{color:var(--red)}
+
+/* Attack path diagram */
+.sec-path{display:flex;align-items:center;justify-content:center;gap:0;padding:8px 0}
+.sec-path-node{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:140px;padding:14px 10px;border-radius:10px;background:var(--bg3);border:1.5px solid var(--bg4);font-family:var(--head);font-size:11px;letter-spacing:.06em;color:var(--fg2);transition:.25s}
+.sec-path-ico{font-size:22px}
+.sec-path-sub{font-family:var(--mono);font-size:10px;color:var(--fg3);letter-spacing:.02em;font-weight:400}
+.sec-path-node.active{border-color:var(--red);box-shadow:0 0 0 1px rgba(255,34,68,.25)}
+.sec-path-gateway.shield-on{border-color:var(--green2)}
+.sec-path-gateway.shield-off{border-color:var(--red);background:rgba(255,34,68,.08);animation:shieldOffPulse 1.1s ease-in-out infinite}
+.sec-path-link{width:70px;height:3px;background:var(--bg4);position:relative;flex-shrink:0}
+.sec-path-link.live{background:var(--red);box-shadow:0 0 8px var(--red)}
+.sec-path-link.blocked{background:repeating-linear-gradient(90deg,var(--green) 0 6px,transparent 6px 12px)}
+@media (max-width:640px){ .sec-path{flex-direction:column} .sec-path-link{width:3px;height:30px} }
+
+/* Attacker profile card (reuses .ti-row/.ti-key/.ti-val from Card 3) */
+.sec-attacker-card{font-size:12px;color:var(--fg2);line-height:1.9}
+
+/* Live attack feed */
+.sec-feed-list{max-height:260px;overflow-y:auto;display:flex;flex-direction:column;gap:6px}
+.sec-feed-item{border-radius:6px;padding:8px 10px;font-size:12px;border-left:3px solid var(--bg4);background:var(--bg3)}
+.sec-feed-main{color:var(--fg)}
+.sec-feed-sub{color:var(--fg3);font-size:10px;margin-top:2px}
+.sec-feed-item.sec-feed-blocked{border-left-color:var(--green)}
+.sec-feed-item.sec-feed-succeeded{border-left-color:var(--red);background:rgba(255,34,68,.07)}
+.sec-feed-item.sec-feed-ended{border-left-color:var(--fg3);opacity:.75}
+
+/* Screen-edge flash when an attack actually lands */
+#flash-overlay{position:fixed;inset:0;pointer-events:none;z-index:9000;box-shadow:inset 0 0 0 0 rgba(255,34,68,0);transition:box-shadow .15s ease-out}
+#flash-overlay.flash-active{box-shadow:inset 0 0 70px 12px rgba(255,34,68,.55)}
+
+/* ── Responsive fallback for narrow viewports ── */
+@media (max-width:1100px){
+  .cards-grid{grid-template-columns:1fr}
+  .c1-detail{grid-template-columns:1fr;grid-auto-rows:auto}
+  .c1-detail-left{max-height:220px}
+  .c3-split{grid-template-columns:1fr}
+  .thread-row,.thread-row-lg{grid-template-columns:1fr}
+}
+@media (max-width:480px){
+  .c3-telemetry-current{grid-template-columns:repeat(2,1fr)}
+  .joint-hud-compact,.joint-hud-full{grid-template-columns:repeat(2,1fr)}
+  .card-mini-grid.cols-3,.card-mini-grid.cols-4{grid-template-columns:1fr 1fr}
+}
+
+/* ── Narrow/mobile shell: the left+right rails are a fixed 472px
+   together, which simply doesn't fit on a phone regardless of what's
+   inside them. Rather than patch Card 3 in isolation, stack the whole
+   3-pane shell vertically below this breakpoint so every card
+   (including Card 3's expanded view) gets the full viewport width to
+   work with, with no horizontal clipping anywhere on the page. ── */
+@media (max-width:860px){
+  #content{flex-direction:column;overflow-y:auto;overflow-x:hidden}
+  #panel-left,#panel-right{width:100%;max-height:280px;flex-shrink:0}
+  #panel-left{border-right:none;border-bottom:1px solid var(--bg4)}
+  #panel-right{border-left:none;border-top:1px solid var(--bg4)}
+  /* #panel-center normally owns its own overflow:hidden + internal
+     scroll regions (cards-grid / detail-view) because it sits beside
+     fixed-height siblings in a row layout. In the stacked column layout
+     here there is no such row to bound its height against, so the SAME
+     overflow:hidden instead silently clips Card 2/3 content beneath
+     whatever height the flex algorithm happens to give it (confirmed via
+     real rendered screenshots during this build). Let it take its
+     natural content height instead and rely solely on #content's own
+     scroll — one scroll container, no nested-overflow surprises. */
+  #panel-center{overflow:visible;min-height:0;flex:none}
+  .detail-view{max-height:none}
+}

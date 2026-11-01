@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>M.A.T.R.I.X. Motion Articulation & Telemetric Real-time Interface eXecutio</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/STLLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/TransformControls.js"></script>
+<link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════ LOADING SCREEN -->
+<div id="loading">
+  <div class="load-grid"></div>
+
+  <div style="position:relative; width:280px; height:280px; display:flex; align-items:center; justify-content:center; margin-bottom:20px;">
+    <svg class="hud-ring r1" viewBox="0 0 200 200" style="position:absolute; width:280px; height:280px;">
+      <circle cx="100" cy="100" r="90" fill="none" stroke="var(--blue)" stroke-width="1" stroke-dasharray="10 4 2 4 20 10"/>
+      <circle cx="100" cy="100" r="85" fill="none" stroke="var(--cyan)" stroke-width="2" stroke-dasharray="40 20 10 30" opacity="0.6"/>
+    </svg>
+    <svg class="hud-ring r2" viewBox="0 0 200 200" style="position:absolute; width:240px; height:240px;">
+      <circle cx="100" cy="100" r="90" fill="none" stroke="var(--amber)" stroke-width="1.5" stroke-dasharray="5 15 30 10" opacity="0.5"/>
+    </svg>
+
+    <svg class="robo-svg" viewBox="0 0 160 160" style="width:200px; height:200px; position:absolute;">
+      <path d="M50,150 L110,150 L100,140 L60,140 Z" fill="#060c14" stroke="#00d4ff" stroke-width="2"/>
+      <line x1="80" y1="140" x2="80" y2="150" stroke="#00d4ff" stroke-width="2"/>
+
+      <g class="j1-anim">
+        <circle cx="80" cy="140" r="14" fill="#0f1a2e" stroke="#0a84ff" stroke-width="2"/>
+        <circle cx="80" cy="140" r="6" fill="#00d4ff"/>
+        <path d="M70,140 L90,140 L85,80 L75,80 Z" fill="#162240" stroke="#00d4ff" stroke-width="1.5"/>
+        <line x1="75" y1="110" x2="85" y2="110" stroke="#0a84ff" stroke-width="1"/>
+        <line x1="77" y1="95" x2="83" y2="95" stroke="#0a84ff" stroke-width="1"/>
+
+        <g class="j2-anim">
+          <circle cx="80" cy="80" r="12" fill="#0f1a2e" stroke="#0a84ff" stroke-width="2"/>
+          <circle cx="80" cy="80" r="5" fill="#00ff88"/>
+          <path d="M72,80 L88,80 L84,30 L76,30 Z" fill="#162240" stroke="#00d4ff" stroke-width="1.5"/>
+          <line x1="76" y1="60" x2="84" y2="60" stroke="#0a84ff" stroke-width="1"/>
+          <line x1="78" y1="45" x2="82" y2="45" stroke="#0a84ff" stroke-width="1"/>
+
+          <circle cx="80" cy="30" r="8" fill="#0f1a2e" stroke="#00d4ff" stroke-width="2"/>
+          <circle cx="80" cy="30" r="3" fill="#ffaa00"/>
+          <path d="M75,25 L75,15 L70,15" fill="none" stroke="#00d4ff" stroke-width="2"/>
+          <path d="M85,25 L85,15 L90,15" fill="none" stroke="#00d4ff" stroke-width="2"/>
+
+          <g class="laser-scan">
+            <path d="M80,30 L50,-10 L110,-10 Z" fill="url(#laserGrad)" opacity="0.9"/>
+          </g>
+        </g>
+      </g>
+      <defs>
+        <linearGradient id="laserGrad" x1="0%" y1="100%" x2="0%" y2="0%">
+          <stop offset="0%" stop-color="#00d4ff" stop-opacity="0.9"/>
+          <stop offset="100%" stop-color="#00d4ff" stop-opacity="0"/>
+        </linearGradient>
+      </defs>
+    </svg>
+  </div>
+
+  <div class="load-title">M.A.T.R.I.X<br><span style="font-size:.45em;letter-spacing:.35em;color:var(--fg2)">Motion Articulation & Telemetric Real-time Interface eXecution</span></div>
+
+  <div class="hex-anim" style="margin-top:10px;"><div class="hex"></div><div class="hex"></div><div class="hex"></div><div class="hex"></div><div class="hex"></div><div class="hex"></div><div class="hex"></div></div>
+
+  <div class="load-bar-wrap" style="margin-top:5px;"><div class="load-bar" id="load-bar"></div></div>
+  <div class="load-status" id="load-status">Initializing systems…</div>
+</div>
+
+<!-- ═══════════════════════════════════════════ SAVE INDICATOR -->
+<div id="save-indicator">✔ AUTO-SAVED</div>
+
+<!-- ═══════════════════════════════════════════ PROJECT HUB -->
+<div id="project-hub">
+  <div class="hub-header">
+    <div class="hub-logo">M.A.T.R.I.X.<small>PROJECT HUB</small></div>
+    <div style="margin-left:auto;font-size:11px;color:var(--fg2)" id="hub-db-status">◉ MEMORY ONLINE</div>
+  </div>
+  <div class="hub-body">
+    <div class="hub-left">
+      <svg class="hub-arm-wrap" width="110" height="120" viewBox="0 0 160 160">
+        <path d="M50,150 L110,150 L100,140 L60,140 Z" fill="#060c14" stroke="#00d4ff" stroke-width="2"/>
+        <g style="transform-origin:80px 140px;animation:swingJ1 3s ease-in-out infinite alternate">
+          <circle cx="80" cy="140" r="10" fill="#0f1a2e" stroke="#0a84ff" stroke-width="2"/>
+          <circle cx="80" cy="140" r="4" fill="#00d4ff"/>
+          <path d="M74,140 L86,140 L83,90 L77,90 Z" fill="#162240" stroke="#00d4ff" stroke-width="1.5"/>
+          <g style="transform-origin:80px 90px;animation:swingJ2 2.5s ease-in-out infinite alternate">
+            <circle cx="80" cy="90" r="8" fill="#0f1a2e" stroke="#0a84ff" stroke-width="2"/>
+            <circle cx="80" cy="90" r="3" fill="#00ff88"/>
+            <path d="M75,90 L85,90 L83,55 L77,55 Z" fill="#162240" stroke="#00d4ff" stroke-width="1.5"/>
+            <circle cx="80" cy="55" r="5" fill="#00d4ff"/>
+          </g>
+        </g>
+      </svg>
+      <div style="font-size:10px;color:var(--fg2);text-align:center;line-height:1.8">
+        <div style="color:var(--cyan);font-family:var(--head);font-size:11px;margin-bottom:8px;letter-spacing:.1em">M.A.T.R.I.X.</div>
+        Projects saved in<br>your browser's local<br>database (IndexedDB)
+      </div>
+      <button class="hub-new-btn" onclick="openNewProjectDialog()">＋ NEW PROJECT</button>
+    </div>
+    <div class="hub-right">
+      <div class="hub-section-title">RECENT PROJECTS</div>
+      <div id="proj-grid" class="proj-grid">
+        <div class="hub-empty"><span>🤖</span>No projects yet.<br>Click "+ New Project" to begin.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ NEW PROJECT DIALOG -->
+<div id="proj-dialog">
+  <div class="dialog-box">
+    <div class="dialog-title">＋ NEW PROJECT</div>
+    <div class="dialog-sub">Enter a name for your robotic arm project. Your models, positions, and sequences will be saved automatically.</div>
+    <input class="dialog-input" id="proj-name-input" type="text" placeholder="e.g. Robotic Arm v1" maxlength="40"
+      onkeydown="if(event.key==='Enter') createProject()"/>
+    <div class="dialog-actions">
+      <button class="dialog-cancel" onclick="closeDialog()">CANCEL</button>
+      <button class="dialog-create" onclick="createProject()">CREATE →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ RENAME DIALOG -->
+<div id="rename-dialog">
+  <div class="dialog-box">
+    <div class="dialog-title">✏ RENAME PROJECT</div>
+    <div class="dialog-sub">Enter a new name for this project.</div>
+    <input class="dialog-input" id="rename-input" type="text" placeholder="New project name" maxlength="40"
+      onkeydown="if(event.key==='Enter') confirmRename()"/>
+    <div class="dialog-actions">
+      <button class="dialog-cancel" onclick="closeRenameDialog()">CANCEL</button>
+      <button class="dialog-create" onclick="confirmRename()">RENAME →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ UPLOAD SCREEN -->
+<div id="upload-screen">
+  <div class="upload-header">
+    <button class="tb-btn" onclick="showProjectHub()" style="margin-right:16px;">◀ BACK TO HUB</button>
+    <div class="logo">M.A.T.R.I.X.<span>MOTION ARTICULATION &amp; TELEMETRIC REAL-TIME INTERFACE eXECUTION</span></div>
+    <div style="font-size:11px;color:var(--fg2);margin-left:auto">STEP 01 — LOAD 3D MODELS</div>
+  </div>
+  <div class="upload-body">
+    <div class="upload-left">
+      <div class="section-label">Upload .OBJ model files</div>
+      <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()" ondragover="dzDrag(event,true)" ondragleave="dzDrag(event,false)" ondrop="dzDrop(event)">
+        <svg class="dz-icon" viewBox="0 0 48 48" fill="none" stroke="#00d4ff" stroke-width="2">
+          <rect x="4" y="12" width="40" height="30" rx="3"/><path d="M16 12V8a4 4 0 014-4h8a4 4 0 014 4v4"/><path d="M24 20v12M18 26l6-6 6 6"/>
+        </svg>
+        <div class="dz-title">Drop .OBJ or .STL files here</div>
+        <div class="dz-sub">or click to browse — Base, Arm, Gripper, Gears…</div>
+      </div>
+      <input type="file" id="file-input" accept=".obj,.stl" multiple style="display:none" onchange="handleFiles(this.files)"/>
+      <div class="file-list" id="file-list"></div>
+    </div>
+    <div class="upload-right">
+      <div class="section-label" style="font-size:9px">Preview</div>
+      <div class="model-preview">
+        <canvas id="preview-canvas" class="preview-canvas"></canvas>
+        <div class="preview-label" id="preview-label">No file selected</div>
+      </div>
+      <div style="padding:10px;background:var(--bg2);border:1px solid var(--bg4);border-radius:6px;font-size:10px;color:var(--fg2);line-height:1.7">
+        <div style="color:var(--cyan);margin-bottom:6px;font-size:9px;letter-spacing:.12em">ASSEMBLY MAP</div>
+        <div>Base.obj → <span style="color:var(--fg)">J0 Yaw</span></div>
+        <div>Waist.obj → <span style="color:var(--fg)">J1 Shoulder</span></div>
+        <div>Arm 01.obj → <span style="color:var(--fg)">J2 Elbow</span></div>
+        <div>Arm 02 v3.obj → <span style="color:var(--fg)">J3 Wrist</span></div>
+        <div>Arm 03.obj → <span style="color:var(--fg)">J4 Roll</span></div>
+        <div>Gripper base.obj → <span style="color:var(--fg)">Mount</span></div>
+        <div>Gripper 1.obj → <span style="color:var(--fg)">Jaw (×2)</span></div>
+        <div>grip link 1.obj → <span style="color:var(--fg)">Linkage</span></div>
+        <div>gear1/2.obj → <span style="color:var(--fg)">Gears</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="upload-footer">
+    <div class="upload-summary">Files loaded: <strong id="file-count">0</strong> &nbsp;|&nbsp; Total parts: <strong id="part-count">0</strong></div>
+    <button class="btn-launch" id="btn-launch" onclick="showAxisCalibration()" disabled>PROCEED TO AXIS CALIBRATION →</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ AXIS CALIBRATION SCREEN -->
+<div id="axis-screen" style="display:none; flex-direction:column; height:100vh; width:100vw; position:absolute; top:0; left:0; background:var(--bg0); z-index:100;">
+  <div class="upload-header">
+    <button class="tb-btn" id="btn-axis-back" onclick="document.getElementById('axis-screen').style.display='none'; document.getElementById('upload-screen').style.display='flex';" style="margin-right:16px;">◀ BACK</button>
+    <div class="logo">M.A.T.R.I.X.<span>AXIS CALIBRATION</span></div>
+    <div style="font-size:11px;color:var(--fg2);margin-left:auto">STEP 02 — SET CENTER POINTS</div>
+  </div>
+  <div class="upload-body" style="flex:1;">
+    <div class="upload-left" style="width:280px; overflow-y:auto;">
+      <div class="section-label">Select a Model</div>
+      <div class="file-list" id="axis-file-list"></div>
+    </div>
+    <div class="upload-right" style="position:relative; flex:1; padding:0; background:#020408;">
+      <canvas id="axis-canvas" style="width:100%; height:100%; outline:none;"></canvas>
+      <div style="position:absolute; bottom:20px; left:20px; background:var(--bg2); padding:15px; border-radius:6px; border:1px solid var(--bg4); box-shadow:0 10px 30px rgba(0,0,0,0.5);">
+        <div style="font-size:12px; font-weight:600; margin-bottom:8px; color:var(--cyan);" id="axis-current-name">No Model Selected</div>
+        <div style="font-size:10px; color:var(--fg2); margin-bottom:12px; max-width:250px;">Click 4 points around the circular rim of the hinge. The crosshair will automatically perfectly center between them.</div>
+        <button class="btn success" id="btn-set-axis" disabled onclick="saveAxisPoint()">✔ SET CENTER POINT</button>
+      </div>
+    </div>
+  </div>
+  <div class="upload-footer">
+    <button class="btn-launch" id="btn-finish-axis" onclick="launchDashboard()" style="margin-left:auto;">LAUNCH M.A.T.R.I.X. →</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ MAIN DASHBOARD -->
+<div id="main">
+
+  <!-- TOP BAR -->
+  <div id="topbar">
+    <button class="tb-btn" onclick="goToHubFromDashboard()">◀ HUB</button>
+    <div class="tb-logo">M.A.T.R.I.X.<small>Real-Time Arm Control</small></div>
+    <div class="tb-sep"></div>
+    <div class="tb-badge"><div class="dot" id="qnx-dot"></div><div><label>QNX</label><span id="qnx-lbl">OFFLINE</span></div></div>
+    <div class="tb-badge"><div class="dot warn" id="ws-dot"></div><div><label>BRIDGE</label><span id="ws-lbl">Connecting</span></div></div>
+    <div class="tb-badge"><div class="dot" id="mode-dot" style="background:var(--cyan)"></div><div><label>MODE</label><span id="mode-lbl">MANUAL</span></div></div>
+    <!-- Cycle counter — only visible while RTOS cycling is active -->
+    <div class="tb-badge" id="tb-cycle-badge"><div class="cyc-dot"></div><div><label>CYCLE</label><span id="tb-cycle-num">0</span></div></div>
+    <div id="tb-proj-name" style="position:absolute; left:50%; transform:translateX(-50%); font-family:var(--head); font-size:13px; color:var(--fg); letter-spacing:1px; white-space:nowrap;"></div>
+    <div class="tb-spacer"></div>
+    <button class="tb-btn" onclick="returnToAxisCalib()">🎯 AXIS CALIB</button>
+    <button class="tb-btn" onclick="autoSave(); toast('Project manually saved'); flashSaveIndicator();">💾 SAVE</button>
+    <button class="tb-btn" id="btn-edit-toggle" onclick="toggleEdit()">✏ EDIT MODE</button>
+    <button class="tb-btn" onclick="uploadNew()">⬆ RELOAD MODELS</button>
+  </div>
+
+  <div id="content">
+
+    <!-- EDIT LEFT PANEL (shown in edit mode) -->
+    <div id="edit-panel-left">
+      <div class="p-head" style="color:var(--amber)">CALIBRATION CONTROLS</div>
+      <div class="p-section" style="padding-top:10px">
+        <button class="jce-toggle" id="jce-btn" onclick="toggleJointControlEdit()">⚙ JOINT CONTROL EDIT</button>
+        <div id="calib-menu" class="calib-menu">
+          <div class="calib-part-name">Selected Part:<span id="calib-part-lbl">— None —</span></div>
+          <div class="calib-pose-btns">
+            <button class="cpb" id="cpb-0" onclick="setCalibPose('q0')">Set 0° Pose<br><span style="font-size:8px;color:var(--fg3)">START</span></button>
+            <button class="cpb" id="cpb-90" onclick="setCalibPose('q90')">Set 90° Pose<br><span style="font-size:8px;color:var(--fg3)">MID</span></button>
+            <button class="cpb" id="cpb-180" onclick="setCalibPose('q180')">Set 180° Pose<br><span style="font-size:8px;color:var(--fg3)">END</span></button>
+          </div>
+          <div class="test-calib-wrap">
+            <div class="test-calib-lbl">TEST CALIBRATION SLIDER (0°–180°)</div>
+            <div style="display:flex;align-items:center;gap:6px">
+              <span style="font-size:9px;color:var(--fg3)">0°</span>
+              <input type="range" id="calib-test-slider" min="0" max="180" value="0" step="1" style="flex:1" oninput="testCalibSlider(this.value)">
+              <span style="font-size:9px;color:var(--fg3)">180°</span>
+            </div>
+            <div style="text-align:center;font-size:11px;color:var(--amber);font-family:var(--head);margin-top:4px" id="calib-test-val">0°</div>
+          </div>
+          <div style="margin-top:10px;font-size:9px;color:var(--fg3);line-height:1.6;padding:6px;background:var(--bg3);border-radius:3px;">
+            Rotate part to desired position, then click a Pose button to save. Sliders will SLERP between saved poses.
+          </div>
+        </div>
+      </div>
+      <div class="p-head" style="margin-top:4px;color:var(--amber)">EDIT TOOLS</div>
+      <div class="p-section" style="padding-top:8px">
+        <div class="btn-row">
+          <button class="btn" style="border-color:var(--cyan)" onclick="transform.setMode('translate')">⬌ MOVE (T)</button>
+          <button class="btn" style="border-color:var(--cyan)" onclick="transform.setMode('rotate')">↻ ROTATE (R)</button>
+        </div>
+        <div class="btn-row" style="margin-top:4px">
+          <button class="btn" style="border-color:var(--cyan)" onclick="transform.setSpace(transform.space==='local'?'world':'local')">🌐 SPACE (L)</button>
+        </div>
+        <div class="btn-row" style="margin-top:4px">
+          <button class="btn" style="border-color:var(--amber)" onclick="undoEdit()">↶ UNDO (Ctrl+Z)</button>
+          <button class="btn" style="border-color:var(--amber)" onclick="redoEdit()">↷ REDO (Ctrl+Y)</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- LEFT PANEL -->
+    <div id="panel-left">
+      <div class="p-head">JOINT CONTROL</div>
+      <div class="p-section" style="padding-top:10px" id="slider-section">
+        <!-- Sliders injected by JS -->
+      </div>
+      <div class="p-head" id="operating-mode-head">OPERATING MODE</div>
+      <div class="p-section" style="padding-top:10px" id="operating-mode-section">
+        <div class="mode-row">
+          <button class="mode-btn active-manual" id="mBtn-manual" onclick="setMode('manual')">MANUAL</button>
+          <button class="mode-btn" id="mBtn-rtos" onclick="setMode('rtos')">RTOS</button>
+          <button class="mode-btn" id="mBtn-nonrtos" onclick="setMode('nonrtos')">NON-RTOS</button>
+        </div>
+        <!-- Pose duration control — RTOS and NON-RTOS (Items 2 & 5) -->
+        <div class="pose-dur-row" id="pose-dur-row" style="display:none">
+          <label for="pose-dur-input" class="pose-dur-lbl" id="pose-dur-lbl-text">POSE DURATION</label>
+          <div class="pose-dur-inputs">
+            <input type="range" id="pose-dur-slider" min="300" max="5000" step="50" value="1000"
+              oninput="setPoseDuration(this.value)">
+            <input type="number" id="pose-dur-input" min="300" max="5000" step="50" value="1000"
+              onchange="setPoseDuration(this.value)">
+            <span class="pose-dur-unit">ms/pose</span>
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn danger" id="btn-emerg" onclick="triggerEmergency()" style="flex:1">🛑 EMERGENCY STOP</button>
+        </div>
+        <div class="btn-row" style="margin-top:5px">
+          <button class="btn warn" id="btn-load" onclick="toggleLoad()">⚙ ADD LOAD</button>
+          <button class="btn primary" id="btn-run" onclick="runMode()" style="display:none">▶ RUN</button>
+          <button class="btn success" id="btn-send-qnx" onclick="sendToQNX()" style="display:none">⬆ SEND→QNX</button>
+        </div>
+        <!-- STOP CYCLE — only shown in RTOS mode while arm is cycling -->
+        <div class="btn-row" style="margin-top:5px" id="row-stop-cycle" style="display:none">
+          <button class="btn-stop-cycle" id="btn-stop-cycle" onclick="stopCycle()">⏹ STOP AFTER THIS CYCLE</button>
+        </div>
+      </div>
+      <div class="p-head" id="teach-record-head">TEACH &amp; RECORD</div>
+      <div class="p-section" style="padding-top:10px" id="teach-record-section">
+        <div class="btn-row">
+          <button class="btn primary" onclick="recordPose()">📌 RECORD</button>
+          <button class="btn" onclick="stopReplay()">■ STOP</button>
+        </div>
+        <div class="btn-row">
+          <button class="btn danger" onclick="clearSeq()">🗑 CLEAR ALL</button>
+        </div>
+        <div id="seq-list"></div>
+      </div>
+      <div id="edit-actuation-panel" style="display:none;">
+        <div class="p-head" style="color:var(--amber);">EDIT MODE ACTUATION</div>
+        <div class="p-section" style="padding-top:10px; color:var(--amber);">
+          <div style="font-size:10px; margin-bottom:8px;">Set Joint Axis for: <span id="edit-act-name" style="color:#fff;font-weight:bold;"></span></div>
+          <div class="btn-row">
+            <button class="btn" id="btn-act-x" onclick="setActuationAxis('X')" style="border-color:var(--amber);color:var(--amber);">Forward (X)</button>
+            <button class="btn" id="btn-act-horiz" onclick="setActuationAxis('Y')" style="border-color:var(--amber);color:var(--amber);">Horizontal (Y)</button>
+            <button class="btn" id="btn-act-vert" onclick="setActuationAxis('Z')" style="border-color:var(--amber);color:var(--amber);">Vertical (Z)</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3D VIEWPORT -->
+    <div id="viewport">
+      <canvas id="three-canvas"></canvas>
+      <div class="canvas-overlay" id="mode-strip" style="color:var(--cyan)">MODE: MANUAL</div>
+      <div class="canvas-overlay" id="angle-strip">J0:+0.0° J1:+0.0° J2:+0.0° J3:+0.0° J4:+0.0°</div>
+      <div class="canvas-overlay" id="edit-strip">✏ EDIT MODE — Drag parts to reposition</div>
+      <div id="axis-angle-overlay"></div>
+      <div id="emerg-overlay">
+        <div class="emerg-text">⚠ EMERGENCY STOP ⚠</div>
+        <div class="emerg-panel" id="emerg-safety-panel">
+          <div class="emerg-panel-title">SAFETY SYSTEM LOCKED</div>
+          <div class="emerg-panel-sub" id="safety-lock-status">QNX reset required</div>
+          <button class="emerg-reset-btn" id="btn-safety-action" onclick="handleEmergencyClearClick()">🔓 RESET EMERGENCY</button>
+        </div>
+      </div>
+      <div class="canvas-overlay" style="bottom:10px; left:10px; pointer-events:auto; display:flex; gap:10px; z-index:10;">
+        <button class="btn" style="background:var(--bg2); border-color:var(--cyan); color:var(--cyan); font-family:var(--head); padding:8px 16px; font-size:11px;" onclick="S.targets=[0,0,0,0,0,0];">RESET (0°)</button>
+        <button class="btn" style="background:var(--bg2); border-color:var(--green); color:var(--green); font-family:var(--head); padding:8px 16px; font-size:11px;" onclick="S.targets=[90,90,90,90,90,0];">HOME (90°)</button>
+      </div>
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div id="panel-right">
+      <!-- EDIT MODE COORD SECTION (only visible in edit mode) -->
+      <div id="edit-coord-section">
+        <div class="p-head" style="color:var(--amber)">PART TRANSFORM</div>
+        <div style="padding:8px 12px 4px">
+          <div style="font-size:9px;color:var(--fg2);letter-spacing:.12em;margin-bottom:8px">POSITION</div>
+          <div class="coord-group">
+            <span class="coord-lbl cx">X</span>
+            <input class="coord-inp cx" id="ci-px" type="number" step="0.01" placeholder="0.00" oninput="applyCoordInput()"/>
+          </div>
+          <div class="coord-group">
+            <span class="coord-lbl cy">Y</span>
+            <input class="coord-inp cy" id="ci-py" type="number" step="0.01" placeholder="0.00" oninput="applyCoordInput()"/>
+          </div>
+          <div class="coord-group">
+            <span class="coord-lbl cz">Z</span>
+            <input class="coord-inp cz" id="ci-pz" type="number" step="0.01" placeholder="0.00" oninput="applyCoordInput()"/>
+          </div>
+          <div style="font-size:9px;color:var(--fg2);letter-spacing:.12em;margin:8px 0 8px">ROTATION (degrees)</div>
+          <div class="coord-group">
+            <span class="coord-lbl cx">X</span>
+            <input class="coord-inp cx" id="ci-rx" type="number" step="0.1" placeholder="0.0°" oninput="applyCoordInput()"/>
+          </div>
+          <div class="coord-group">
+            <span class="coord-lbl cy">Y</span>
+            <input class="coord-inp cy" id="ci-ry" type="number" step="0.1" placeholder="0.0°" oninput="applyCoordInput()"/>
+          </div>
+          <div class="coord-group">
+            <span class="coord-lbl cz">Z</span>
+            <input class="coord-inp cz" id="ci-rz" type="number" step="0.1" placeholder="0.0°" oninput="applyCoordInput()"/>
+          </div>
+        </div>
+      </div>
+      <div class="p-head" id="system-status-head">SYSTEM STATUS</div>
+      <div class="p-section" style="padding-top:10px" id="system-status-section">
+        <div class="led-grid">
+          <div class="led-cell"><div class="led-dot led-on-g" id="led-ok"></div><div class="led-lbl">NORMAL</div></div>
+          <div class="led-cell"><div class="led-dot led-off-r" id="led-em"></div><div class="led-lbl">EMERGENCY</div></div>
+          <div class="led-cell"><div class="led-dot led-off-a" id="led-load"></div><div class="led-lbl">LOAD</div></div>
+          <div class="led-cell"><div class="led-dot led-off-c" id="led-qnx"></div><div class="led-lbl">QNX LIVE</div></div>
+        </div>
+      </div>
+      <div class="p-head" id="telemetry-head">TELEMETRY</div>
+      <div class="p-section" style="padding-top:10px" id="telemetry-section">
+        <div class="tele-grid">
+          <div class="tele-cell"><div class="tele-val" id="t-pkt" style="color:var(--cyan)">0</div><div class="tele-key">PACKETS</div></div>
+          <div class="tele-cell"><div class="tele-val" id="t-fps" style="color:var(--green)">—</div><div class="tele-key">FPS</div></div>
+          <div class="tele-cell"><div class="tele-val" id="t-seq" style="color:var(--amber)">0</div><div class="tele-key">POSES</div></div>
+          <div class="tele-cell"><div class="tele-val" id="t-wdg" style="color:var(--red)">0</div><div class="tele-key">WDG HITS</div></div>
+        </div>
+      </div>
+      <div class="p-head">EVENT LOG</div>
+      <div class="p-section" style="padding-top:8px">
+        <div id="log-box"></div>
+      </div>
+    </div>
+
+  </div><!-- #content -->
+</div><!-- #main -->
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
